@@ -2,8 +2,6 @@ name := """gestalt-security-play"""
 
 version := "1.0"
 
-//lazy val root = (project in file(".")).enablePlugins(PlayScala)
-
 scalaVersion := "2.11.6"
 
 //
@@ -13,7 +11,8 @@ shellPrompt in ThisBuild := { state => "\033[0;36m" + Project.extract(state).cur
 
 resolvers ++= Seq(
   "gfi-libs-snapshots" at "http://galacticfog.artifactoryonline.com/galacticfog/libs-snapshots-local",
-  "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/"
+  "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/",
+  "Atlassian Releases" at "https://maven.atlassian.com/public/"
 )
 
 libraryDependencies ++= Seq(
@@ -25,8 +24,7 @@ libraryDependencies ++= Seq(
 // ----------------------------------------------------------------------------
 
 libraryDependencies ++= Seq(
-  "com.mohiva" %% "play-silhouette" % "2.0" withJavadoc() withSources(),
+  "com.mohiva" %% "play-silhouette" % "2.0",
   "com.mohiva" %% "play-silhouette-testkit" % "2.0" % "test",
-  "net.codingwell" %% "scala-guice" % "4.0.0-beta5",
-  "com.typesafe.play" % "play-json_2.11" % "2.4.0-M2"
+  "net.codingwell" %% "scala-guice" % "4.0.0-beta5"
 )
