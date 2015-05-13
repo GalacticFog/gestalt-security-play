@@ -40,7 +40,7 @@ trait GlobalWithInjection extends GlobalSettings with Logger with SecuredSetting
    * @return The result to send to the client.
    */
   override def onNotAuthenticated(request: RequestHeader, lang: Lang): Option[Future[Result]] = Some(Future{
-    Unauthorized("").withHeaders("WWW-Authenticate" -> "basic")
+    Unauthorized("Authentication required").withHeaders("WWW-Authenticate" -> "basic")
   })
 
 }
