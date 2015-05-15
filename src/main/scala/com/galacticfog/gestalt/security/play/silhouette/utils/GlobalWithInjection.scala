@@ -18,7 +18,10 @@ trait GlobalWithInjection extends GlobalSettings with Logger with SecuredSetting
   /**
    * The Guice dependencies injector.
    */
-  val injector = Guice.createInjector(new SilhouetteModule)
+  val injector = {
+    logger.info("about to create injector")
+    Guice.createInjector(new GetaltSecurityModule)
+  }
 
   /**
    * Loads the controller classes with the Guice injector,

@@ -9,6 +9,7 @@ import com.mohiva.play.silhouette.api.{LoginInfo, Authenticator, Environment, Ev
 import com.mohiva.play.silhouette.impl.authenticators._
 import com.mohiva.play.silhouette.impl.util._
 import net.codingwell.scalaguice.ScalaModule
+import play.api.Logger
 import play.api.Play.current
 
 import scala.collection.immutable.ListMap
@@ -16,19 +17,34 @@ import scala.collection.immutable.ListMap
 /**
  * The Guice module which wires all Silhouette dependencies.
  */
-class SilhouetteModule extends AbstractModule with ScalaModule {
+class GetaltSecurityModule extends AbstractModule with ScalaModule {
+
+  def getFallbackSecurityConfig(): GestaltSecurityConfig = GestaltSecurityConfig(HTTP,"localhost",9455,"0000ApiKeyNotProvided000","0000000000APISecretNotProvided0000000000",None)
+  def getSecurityConfig(): Option[GestaltSecurityConfig] = None
 
   /**
    * Configures the module.
    */
   def configure() {
+    Logger.info("in SilhouetteModule.configure()")
     bind[AccountService].to[AccountServiceImpl]
     bind[CacheLayer].to[PlayCacheLayer]
     bind[HTTPLayer].to[PlayHTTPLayer]
     bind[EventBus].toInstance(EventBus())
-    bind[GestaltSecurityConfig].toInstance(
-      SecurityConfig.getSecurityConfig() getOrElse(throw new RuntimeException("Could not determine Gestalt security settings from environment variables or application config"))
-    )
+    Logger.info("about to create GestaltSecurityConfig")
+    val config = try {
+      val c = getSecurityConfig() orElse SecurityConfig.getSecurityConfig()
+      c.getOrElse {
+        Logger.warn("Could not determine GestaltSecurityConfig; relying on getFallbackSecurityConfig()")
+        getFallbackSecurityConfig()
+      }
+    } catch {
+      case t: Throwable =>
+        Logger.error(s"caught exception ${t.getMessage} trying to get security config",t)
+        getFallbackSecurityConfig()
+    }
+    Logger.info(s"binding GestaltSecurityConfig to ${config.protocol}://${config.host}:${config.port}")
+    bind[GestaltSecurityConfig].toInstance(config)
   }
 
   @Provides
@@ -85,10 +101,11 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
    */
   @Provides
   def provideGestaltSecurityProvider(secConfig: GestaltSecurityConfig, gestaltSecurityClient: GestaltSecurityClient): GestaltAuthProvider = {
-    secConfig.appId match {
-      case Some(appId) => new GestaltAuthProvider(appId, gestaltSecurityClient)
-      case None => throw new RuntimeException("Could not determine appId in Gestalt security settings")
+    val appId = secConfig.appId.getOrElse {
+      Logger.warn("Could not determine appId in Gestalt security settings; security will not work")
+      "0000AppIdNotProvided0000"
     }
+    new GestaltAuthProvider(appId, gestaltSecurityClient)
   }
 
 }

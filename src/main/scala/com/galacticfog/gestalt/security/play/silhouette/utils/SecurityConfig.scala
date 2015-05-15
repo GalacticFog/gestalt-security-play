@@ -36,16 +36,19 @@ object SecurityConfig {
     case _ => throw new RuntimeException("Invalid protocol for Gestalt security")
   }
 
-  def getConfigFromFile()(implicit app: Application): Option[GestaltSecurityConfig] = {
-    val conf = app.configuration
-    for {
-      proto  <- conf.getString(fPROTOCOL) orElse(Some("http")) map checkProtocol
-      host   <- conf.getString(fHOSTNAME)
-      port   <- conf.getInt(fPORT) orElse conf.getString(fPORT).map{_.toInt}
-      key    <- conf.getString(fKEY)
-      secret <- conf.getString(fSECRET)
-      appId   = conf.getString(fAPPID)
-    } yield GestaltSecurityConfig(protocol=proto, host=host, port=port.toInt, apiKey=key, apiSecret=secret, appId=appId)
+  def getConfigFromFile(): Option[GestaltSecurityConfig] = {
+//    def getConfigFromFile()(implicit app: Application): Option[GestaltSecurityConfig] = {
+//    play.api.Configuration
+//    val conf = app.configuration
+//    for {
+//      proto  <- conf.getString(fPROTOCOL) orElse(Some("http")) map checkProtocol
+//      host   <- conf.getString(fHOSTNAME)
+//      port   <- conf.getInt(fPORT) orElse conf.getString(fPORT).map{_.toInt}
+//      key    <- conf.getString(fKEY)
+//      secret <- conf.getString(fSECRET)
+//      appId   = conf.getString(fAPPID)
+//    } yield GestaltSecurityConfig(protocol=proto, host=host, port=port.toInt, apiKey=key, apiSecret=secret, appId=appId)
+    None
   }
 
   def getConfigFromEnv(): Option[GestaltSecurityConfig] = {
@@ -59,7 +62,7 @@ object SecurityConfig {
     } yield GestaltSecurityConfig(protocol=proto, host=host, port=port.toInt, apiKey=key, apiSecret=secret, appId=appId)
   }
 
-  def getSecurityConfig()(implicit app: Application): Option[GestaltSecurityConfig] = {
+  def getSecurityConfig(): Option[GestaltSecurityConfig] = {
     getConfigFromEnv() orElse getConfigFromFile()
   }
 

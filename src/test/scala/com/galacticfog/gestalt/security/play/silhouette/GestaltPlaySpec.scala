@@ -23,5 +23,11 @@ class GestaltPlaySpec extends Specification {
       ko("write me")
     }.pendingUntilFixed
 
+    "injection crap" in new WithApplication(app = FakeApplication(
+
+    )) {
+
+    }
+
   }
 }

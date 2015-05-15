@@ -8,5 +8,5 @@ import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
 abstract class GestaltSecuredController
   extends Silhouette[AuthAccount, DummyAuthenticator] {
 
-  @Inject implicit val env: Environment[AuthAccount,DummyAuthenticator] = null
+  @Inject implicit var env: Environment[AuthAccount,DummyAuthenticator] = null
 }
