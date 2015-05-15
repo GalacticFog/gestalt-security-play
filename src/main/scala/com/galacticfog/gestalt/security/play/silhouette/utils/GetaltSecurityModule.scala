@@ -17,7 +17,7 @@ import scala.collection.immutable.ListMap
 /**
  * The Guice module which wires all Silhouette dependencies.
  */
-class GetaltSecurityModule extends AbstractModule with ScalaModule {
+class GestaltSecurityModule extends AbstractModule with ScalaModule {
 
   def getFallbackSecurityConfig(): GestaltSecurityConfig = GestaltSecurityConfig(HTTP,"localhost",9455,"0000ApiKeyNotProvided000","0000000000APISecretNotProvided0000000000",None)
   def getSecurityConfig(): Option[GestaltSecurityConfig] = None
