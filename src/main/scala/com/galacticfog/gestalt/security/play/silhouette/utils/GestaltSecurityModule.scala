@@ -19,29 +19,29 @@ import scala.collection.immutable.ListMap
  */
 class GestaltSecurityModule extends AbstractModule with ScalaModule {
 
-  def getFallbackSecurityConfig(): GestaltSecurityConfig = GestaltSecurityConfig(HTTP,"localhost",9455,"0000ApiKeyNotProvided000","0000000000APISecretNotProvided0000000000",None)
-  def getSecurityConfig(): Option[GestaltSecurityConfig] = None
+  def getFallbackSecurityConfig: GestaltSecurityConfig = GestaltSecurityConfig(HTTP,"localhost",9455,"0000ApiKeyNotProvided000","0000000000APISecretNotProvided0000000000",None)
+  def getSecurityConfig: Option[GestaltSecurityConfig] = None
 
   /**
    * Configures the module.
    */
   def configure() {
-    Logger.info("in SilhouetteModule.configure()")
+    Logger.info("configuring GestaltSecurityModule")
     bind[AccountService].to[AccountServiceImpl]
     bind[CacheLayer].to[PlayCacheLayer]
     bind[HTTPLayer].to[PlayHTTPLayer]
     bind[EventBus].toInstance(EventBus())
-    Logger.info("about to create GestaltSecurityConfig")
+    Logger.info("creating GestaltSecurityConfig")
     val config = try {
-      val c = getSecurityConfig() orElse SecurityConfig.getSecurityConfig()
+      val c = getSecurityConfig orElse SecurityConfig.getSecurityConfig
       c.getOrElse {
         Logger.warn("Could not determine GestaltSecurityConfig; relying on getFallbackSecurityConfig()")
-        getFallbackSecurityConfig()
+        getFallbackSecurityConfig
       }
     } catch {
       case t: Throwable =>
         Logger.error(s"caught exception ${t.getMessage} trying to get security config",t)
-        getFallbackSecurityConfig()
+        getFallbackSecurityConfig
     }
     Logger.info(s"binding GestaltSecurityConfig to ${config.protocol}://${config.host}:${config.port}")
     bind[GestaltSecurityConfig].toInstance(config)

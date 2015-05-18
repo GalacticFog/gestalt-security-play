@@ -1,13 +1,11 @@
 package com.galacticfog.gestalt.security.play.silhouette
 
+import com.galacticfog.gestalt.security.api.HTTP
+import com.galacticfog.gestalt.security.play.silhouette.utils.{GestaltSecurityConfig, GestaltSecurityModule}
+import com.google.inject.Guice
 import org.specs2.mutable._
 import org.specs2.runner._
-import org.specs2.matcher.{Matcher, JsonMatchers}
 import org.junit.runner._
-import play.api.libs.json.Json
-
-import play.api.test._
-import play.api.test.Helpers._
 
 /**
  * Add your spec here.
@@ -17,17 +15,30 @@ import play.api.test.Helpers._
 @RunWith(classOf[JUnitRunner])
 class GestaltPlaySpec extends Specification {
 
-  "gestalt-play-silhouette" should {
+  "GestaltSecurityModule" should {
 
-    "do something" in {
-      ko("write me")
-    }.pendingUntilFixed
+    "allow override on getSecurityConfig" in {
+      val config = GestaltSecurityConfig(
+        protocol = HTTP,
+        host = "test.host.com",
+        port = 1234,
+        apiKey = "someKey",
+        apiSecret = "someSecret",
+        appId = Some("appId")
+      )
 
-    "injection crap" in new WithApplication(app = FakeApplication(
+      val overrideModule = new GestaltSecurityModule {
+        override def getSecurityConfig: Option[GestaltSecurityConfig] = Some(config)
+      }
 
-    )) {
+      overrideModule.getSecurityConfig must beSome(config)
 
+      val injector = Guice.createInjector(overrideModule)
+      val instance = injector.getInstance(classOf[GestaltSecurityConfig])
+      instance must be(config)
     }
 
   }
+
+
 }

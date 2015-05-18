@@ -1,7 +1,5 @@
 package com.galacticfog.gestalt.security.play.silhouette.examples
 
-import javax.inject.Inject
-
 import com.galacticfog.gestalt.security.play.silhouette.GestaltSecuredController
 import play.api.mvc.Action
 

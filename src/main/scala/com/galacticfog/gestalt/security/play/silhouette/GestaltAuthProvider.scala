@@ -20,7 +20,7 @@ class GestaltLoginInfo(override val providerID: String, override val providerKey
 class GestaltAuthProvider(appId: String, client: GestaltSecurityClient) extends RequestProvider {
   override def authenticate[B](request: Request[B]): Future[Option[LoginInfo]] = {
     getCredentials(request) match {
-      case Some(credentials) => {
+      case Some(credentials) =>
         Logger.debug(s"attempting to authenticate REST user ${credentials.identifier}")
         val app = GestaltApp(appId = appId, appName = "", org = GestaltOrg("", ""))
         val auth: Future[Option[GestaltAuthResponse]] = app.authorizeUser(GestaltBasicCredsToken(credentials.identifier, credentials.password))(client)
@@ -31,7 +31,6 @@ class GestaltAuthProvider(appId: String, client: GestaltSecurityClient) extends 
             authResponse = ar
           )
         } }
-      }
       case None => Future.successful(None)
     }
   }
