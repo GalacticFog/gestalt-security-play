@@ -3,7 +3,7 @@ package com.galacticfog.gestalt.security.play.silhouette.examples
 import com.galacticfog.gestalt.security.play.silhouette.GestaltSecuredController
 import play.api.mvc.Action
 
-class ExampleController extends GestaltSecuredController {
+class ExampleClassController extends GestaltSecuredController {
 
   def insecureMethod() = Action {
     Ok("insecure")
