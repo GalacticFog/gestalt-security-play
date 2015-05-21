@@ -30,6 +30,6 @@ trait ExampleInstanceController {
 
 object ExampleInstanceController extends GestaltSecuredInstanceController with ExampleInstanceController {
 
-  override def getSecurityConfig: GestaltSecurityConfig = GestaltSecurityConfig(HTTP, "security.company.com", 9455, "securityKey", "securitySecret", Some("appId"))
+  override def getSecurityConfig: Option[GestaltSecurityConfig] = Some(GestaltSecurityConfig(HTTP, "security.company.com", 9455, "securityKey", "securitySecret", Some("appId")))
 
 }

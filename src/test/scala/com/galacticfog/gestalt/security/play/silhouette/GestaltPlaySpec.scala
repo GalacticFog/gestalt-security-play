@@ -45,7 +45,7 @@ class GestaltPlaySpec extends Specification {
   "GestaltSecuredInstanceController" should {
 
     class TestInstanceController(config: GestaltSecurityConfig) extends GestaltSecuredInstanceController with ExampleInstanceController {
-      override def getSecurityConfig: GestaltSecurityConfig = config
+      override def getSecurityConfig: Option[GestaltSecurityConfig] = Some(config)
     }
 
     // requires WithApplication to create wsclient
