@@ -12,7 +12,7 @@ import play.api.mvc.RequestHeader
 import play.api.test.WithApplication
 
 @RunWith(classOf[JUnitRunner])
-class GrantSpecs extends Specification with Mockito {
+class GrantSpecs extends Specification with Mockito with Tables {
 
   // Silhouette Authorization.isAuthorized has implicit args for the following
   // Our authorizers don't need them, so mocks will suffice
@@ -23,6 +23,8 @@ class GrantSpecs extends Specification with Mockito {
     account = GestaltAccount("john", "John", "Doe", "jdoe@gmail.com"),
     rights = rights
   )
+
+  def simpleRight(rightName: String) = makeAuth(Seq(GestaltRightGrant(rightName,None)))
 
   "hasGrant" should {
 
@@ -102,43 +104,84 @@ class GrantSpecs extends Specification with Mockito {
     }
   }
 
+
   "matchesGrant" should {
 
+    def testGrant(grantName: String, test: String) = matchesGrant(test).isAuthorized(simpleRight(grantName))
+
     "match when exact" in {
-      val grantName = "abc:def:ghi"
-      val right = makeAuth(Seq(
-        GestaltRightGrant("abc:def:ghi",None)
-      ))
-      matchesGrant(grantName).isAuthorized(right) must beTrue
+      "grant"         | "test"        |>
+        "abc"         ! "abc"         |
+        "abc:def"     ! "abc:def"     |
+        "abc:def:ghi" ! "abc:def:ghi" | { (grant,test) =>
+        testGrant(grant,test) must beTrue
+      }
     }
 
     "not match when exactly not" in {
-      val grantName = "abc:def:ghi"
-      val right = makeAuth(Seq(
-        GestaltRightGrant("abc:def:ghI",None)
-      ))
-      matchesGrant(grantName).isAuthorized(right) must beFalse
+      "grant"         | "test"        |>
+        "abc"         ! "abC"         |
+        "abc:def"     ! "ab:def"      |
+        "abc:def"     ! "abc:de"      | { (grant,test) =>
+        testGrant(grant,test) must beFalse
+      }
     }
 
-    "match on wildcard" in {
-      val right = makeAuth(Seq(
-        GestaltRightGrant("abc:def:ghi",None)
-      ))
-      matchesGrant("abc:*:ghi").isAuthorized(right) must beTrue
+    "match wildcards on any single in grant or test" in {
+      "grant"         | "test"        |>
+        "*"           ! "abc"         |
+        "abc"         ! "*"           |
+        "*:def"       ! "abc:def"     |
+        "abc:def"     ! "*:def"       |
+        "abc:*:ghi"   ! "abc:def:ghi" |
+        "abc:def:ghi" ! "abc:*:ghi"   |
+        "*:def:*"     ! "abc:def:ghi" |
+        "abc:def:ghi" ! "*:def:*"     |
+        "*:def:*"     ! "abc:*:ghi"   | { (grant,test) =>
+        testGrant(grant,test) must beTrue
+      }
     }
 
-    "fail on too short" in {
-      val right = makeAuth(Seq(
-        GestaltRightGrant("abc:def",None)
-      ))
-      matchesGrant("*").isAuthorized(right) must beFalse
+    "fail on unmatched sizes in the absence of a super-wildcard" in {
+      "grant"         | "test"        |>
+        "*"           ! "abc:def"     |
+        "abc:def"     ! "*"           |
+        "abc:def"     ! "abc:def:ghi" |
+        "abc:def:ghi" ! "abc:def"     | { (grant,test) =>
+        testGrant(grant,test) must beFalse
+      }
     }
 
-    "fail on too long" in {
-      val right = makeAuth(Seq(
-        GestaltRightGrant("abc",None)
-      ))
-      matchesGrant("*:*").isAuthorized(right) must beFalse
+    "pass on rightmost super-wildcard" in {
+      "grant"         | "test"        |>
+        "**"          ! "a:b:c"       |
+        "a:**"        ! "a:b:c"       |
+        "a:b:**"      ! "a:b:c"       |
+        "a:b:c:**"    ! "a:b:c"       |
+        "a:b:c"       ! "**"          |
+        "a:b:c"       ! "a:**"        |
+        "a:b:c"       ! "a:b:**"      |
+        "a:b:c"       ! "a:b:c:**"    | { (grant,test) =>
+        testGrant(grant,test) must beTrue
+      }
+    }
+
+    "throw exception when super-wildcard isn't rightmost" in {
+      "grant"         | "test"    |>
+        "**:b"        ! "a:b"     |
+        "a:b"         ! "**:b"    |
+        "a:**:c"      ! "a:b"     |
+        "a:b"         ! "a:**:c"  | { (grant,test) =>
+        testGrant(grant,test) must throwA[RuntimeException]("invalid matcher; super-wildcard must be in the right-most field")
+      }
+    }
+
+    "throw exception when grant name is empty" in {
+      "grant"  | "test"    |>
+        ""     ! "a:b"     |
+        "a:b"  ! ""        | { (grant,test) =>
+        testGrant(grant,test) must throwA[RuntimeException]("grant name must be non-empty")
+      }
     }
 
   }
