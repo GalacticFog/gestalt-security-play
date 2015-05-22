@@ -2,7 +2,7 @@ name := """gestalt-security-play"""
 
 organization := "com.galacticfog"
 
-version := "1.0.1-SNAPSHOT"
+version := "1.1.0-SNAPSHOT"
 
 scalaVersion := "2.11.6"
 
@@ -30,10 +30,9 @@ libraryDependencies ++= Seq(
 // ----------------------------------------------------------------------------
 
 libraryDependencies ++= Seq(
-    "junit" % "junit" % "4.12" % "test",
-    "org.specs2" % "specs2-junit_2.11" % "2.4.17" % "test",
-    "org.specs2" %% "specs2-core" % "2.4.17" % "test",
+  "junit" % "junit" % "4.12" % "test",
+  "org.specs2" % "specs2-junit_2.11" % "2.4.17" % "test",
+  "org.specs2" %% "specs2-core" % "2.4.17" % "test",
   "com.mohiva" %% "play-silhouette" % "2.0",
-  "com.mohiva" %% "play-silhouette-testkit" % "2.0" % "test",
-  "net.codingwell" %% "scala-guice" % "4.0.0-beta5"
+  "com.mohiva" %% "play-silhouette-testkit" % "2.0" % "test"
 )

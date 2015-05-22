@@ -30,7 +30,14 @@ class GestaltAuthProvider(appId: String, client: GestaltSecurityClient) extends 
             providerKey = ar.account.username,
             authResponse = ar
           )
-        } }
+        } } recover {
+          case ce: java.net.ConnectException =>
+            Logger.warn("ConnectException while trying to authenticate: " + ce.getMessage())
+            None
+          case t: Throwable =>
+            Logger.warn("Caught exception while trying to authenticate",t)
+            None
+        }
       case None => Future.successful(None)
     }
   }
