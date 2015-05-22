@@ -36,7 +36,7 @@ class GestaltSecuredController extends Silhouette[AuthAccount, DummyAuthenticato
   val env = new Environment[AuthAccount,DummyAuthenticator] {
     override def identityService: IdentityService[AuthAccount] = new AccountServiceImpl()
     override def authenticatorService: AuthenticatorService[DummyAuthenticator] = new DummyAuthenticatorService()
-    override def providers: Map[String, Provider] = Map(GestaltAuthProvider.ID -> new GestaltAuthProvider(config.appId.get, GestaltSecurityClient(config.protocol,config.host,config.port,config.apiKey,config.apiSecret)))
+    override def providers: Map[String, Provider] = Map(GestaltAuthProvider.ID -> new GestaltAuthProvider(config.appId.getOrElse("0000AppIdNotProvided0000"), GestaltSecurityClient(config.protocol,config.host,config.port,config.apiKey,config.apiSecret)))
     override def eventBus: EventBus = EventBus()
   }
 
