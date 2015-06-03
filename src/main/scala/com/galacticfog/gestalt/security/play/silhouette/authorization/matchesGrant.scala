@@ -8,9 +8,20 @@ import play.api.mvc.RequestHeader
 import scala.util.matching.Regex
 
 case class matchesGrant(testGrantName: String) extends Authorization[AuthAccount] {
+  import matchesGrant._
 
   val testSplit = splitAndValidate(testGrantName)
 
+  def checkAuthorization(identity: AuthAccount): Boolean = {
+    identity.rights.exists(r => splitWildcardMatch(testSplit, splitAndValidate(r.grantName)))
+  }
+
+  override def isAuthorized(identity: AuthAccount)(implicit request: RequestHeader, lang: Lang): Boolean = {
+    checkAuthorization(identity)
+  }
+}
+
+case object matchesGrant {
   def splitAndValidate(name: String): List[String] = {
     if (name.trim.isEmpty) throw new RuntimeException("grant name must be non-empty")
     val split = name.trim.split(":")
@@ -27,9 +38,5 @@ case class matchesGrant(testGrantName: String) extends Authorization[AuthAccount
       case ( aHead :: aTail, bHead :: bTail ) if (aHead == "*" || bHead == "*" || aHead == bHead) => splitWildcardMatch(aTail,bTail)
       case _ => false
     }
-  }
-
-  override def isAuthorized(identity: AuthAccount)(implicit request: RequestHeader, lang: Lang): Boolean = {
-    identity.rights.exists(r => splitWildcardMatch(testSplit, splitAndValidate(r.grantName)))
   }
 }
