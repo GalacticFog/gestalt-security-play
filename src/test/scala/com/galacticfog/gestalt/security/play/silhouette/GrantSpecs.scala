@@ -1,8 +1,7 @@
 package com.galacticfog.gestalt.security.play.silhouette
 
-import com.galacticfog.gestalt.security.api.{GestaltRightGrant, GestaltAccount, GestaltAuthResponse, HTTP}
+import com.galacticfog.gestalt.security.api.{GestaltRightGrant, GestaltAccount}
 import com.galacticfog.gestalt.security.play.silhouette.authorization.{matchesValue, hasValue, matchesGrant, hasGrant}
-import com.galacticfog.gestalt.security.play.silhouette.utils.GestaltSecurityConfig
 import org.junit.runner._
 import org.specs2.mock.Mockito
 import org.specs2.mutable._

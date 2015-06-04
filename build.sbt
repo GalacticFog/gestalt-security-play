@@ -2,7 +2,7 @@ name := """gestalt-security-play"""
 
 organization := "com.galacticfog"
 
-version := "1.1.0-SNAPSHOT"
+version := "1.1.1-SNAPSHOT"
 
 scalaVersion := "2.11.6"
 
@@ -20,9 +20,9 @@ resolvers ++= Seq(
 //
 shellPrompt in ThisBuild := { state => "\033[0;36m" + Project.extract(state).currentRef.project + "\033[0m] " }
 
+
 libraryDependencies ++= Seq(
-  "com.galacticfog" % "gestalt-security-sdk-scala_2.11" % "0.1.0-SNAPSHOT" withSources(),
-  "com.galacticfog" % "gestalt-io_2.11" % "1.0-SNAPSHOT"
+  "com.galacticfog" % "gestalt-security-sdk-scala_2.11" % "0.1.1-SNAPSHOT" withSources()
 )
 
 // ----------------------------------------------------------------------------

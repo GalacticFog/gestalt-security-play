@@ -1,5 +1,6 @@
 package com.galacticfog.gestalt.security.play.silhouette.utils
 
+import com.galacticfog.gestalt.Gestalt
 import com.mohiva.play.silhouette.api.SecuredSettings
 import play.api.i18n.Lang
 import play.api.mvc.Results._
@@ -28,3 +29,5 @@ trait DefaultSecurityPrompts extends SecuredSettings {
   })
 
 }
+
+
