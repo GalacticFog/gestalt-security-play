@@ -6,6 +6,6 @@ import play.api.libs.json.Json
 
 object JsonImports {
 
-  lazy implicit val authAccountFormat = Json.format[AuthAccount]
+  implicit val authAccountFormat = Json.format[AuthAccount]
 
 }
