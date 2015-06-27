@@ -1,6 +1,9 @@
 package com.galacticfog.gestalt.security.play.silhouette
 
 import com.galacticfog.gestalt.Gestalt
+import com.galacticfog.gestalt.io.GestaltConfig
+import com.galacticfog.gestalt.io.GestaltConfig.GestaltContext
+import com.galacticfog.gestalt.io.internal.ContextLoader
 import com.galacticfog.gestalt.meta.play.utils.GlobalMeta
 import com.galacticfog.gestalt.security.api.HTTP
 import com.galacticfog.gestalt.security.api.GestaltSecurityConfig
@@ -51,6 +54,9 @@ class GestaltPlaySpec extends Specification with Mockito {
     "get config from meta by default" in new WithApplication {
       val meta = mock[Gestalt]
       meta.getConfig("authentication") returns Success(Json.toJson(testConfig).toString)
+      val cl = mock[ContextLoader]
+      meta.local returns cl
+      cl.context returns Some(GestaltContext("","","","",0,None,GestaltConfig.Environment("",""),""))
       val controller = new TestController(meta)
       controller.securityClient.apiKey    must_== testConfig.apiKey
       controller.securityClient.apiSecret must_== testConfig.apiSecret
