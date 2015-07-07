@@ -1,2 +1,2 @@
 # gestalt-security-play
-Play framework for Gestalt Security
+Play framework integration for Gestalt Security
