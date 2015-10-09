@@ -2,7 +2,7 @@ name := """gestalt-security-play"""
 
 organization := "com.galacticfog"
 
-version := "1.1.2"
+version := "1.1.3-SNAPSHOT"
 
 scalaVersion := "2.11.6"
 
