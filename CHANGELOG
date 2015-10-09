@@ -1,2 +1,6 @@
+------ 1.1.2 -------
+- Removed hard-coded resolvers
+- Updated build dependencies to relessed versions
+
 ------ 1.1.1 -------
 - Initial public release
