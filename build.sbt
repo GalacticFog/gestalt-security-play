@@ -7,8 +7,9 @@ version := "1.2.0-SNAPSHOT"
 scalaVersion := "2.11.6"
 
 resolvers ++= Seq(
-  "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/",
-  "Atlassian Releases" at "https://maven.atlassian.com/public/")
+    "gestalt" at "http://galacticfog.artifactoryonline.com/galacticfog/libs-snapshots-local",
+    "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/",
+    "Atlassian Releases" at "https://maven.atlassian.com/public/")
 
 credentials ++= {
   (for {
