@@ -11,7 +11,10 @@ trait AccountService extends IdentityService[AuthAccount]
 class AccountServiceImpl extends AccountService {
   override def retrieve(loginInfo: LoginInfo): Future[Option[AuthAccount]] = Future {
     loginInfo match {
-      case glo: GestaltLoginInfo => Some(AuthAccount(glo.authResponse.account, glo.authResponse.rights))
+      case glo: GestaltLoginInfo => glo.authResponse match {
+        case arWithCreds: GestaltAuthResponseWithCreds => Some(AuthAccountWithCreds(glo.authResponse.account, glo.authResponse.groups, glo.authResponse.rights, arWithCreds.creds))
+        case _ => Some(AuthAccountSimple(glo.authResponse.account, glo.authResponse.groups, glo.authResponse.rights))
+      }
       case _ => None
     }
   }
