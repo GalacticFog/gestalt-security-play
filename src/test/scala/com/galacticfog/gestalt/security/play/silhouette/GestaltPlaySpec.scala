@@ -1,20 +1,23 @@
 package com.galacticfog.gestalt.security.play.silhouette
 
+import java.util.UUID
+
 import com.galacticfog.gestalt.Gestalt
 import com.galacticfog.gestalt.io.GestaltConfig
 import com.galacticfog.gestalt.io.GestaltConfig.GestaltContext
-import com.galacticfog.gestalt.io.internal.{Ok, ContextLoader}
+import com.galacticfog.gestalt.io.internal.ContextLoader
 import com.galacticfog.gestalt.meta.play.utils.GlobalMeta
 import com.galacticfog.gestalt.security.api.{DELEGATED_SECURITY_MODE, HTTP, GestaltSecurityConfig}
+import com.mohiva.play.silhouette.api.services.AuthenticatorService
+import com.mohiva.play.silhouette.impl.authenticators.{DummyAuthenticatorService, DummyAuthenticator}
 import org.specs2.mock.Mockito
 import org.specs2.mutable._
 import org.specs2.runner._
 import org.junit.runner._
 import play.api.GlobalSettings
 import play.api.libs.json.Json
-import play.api.mvc.{AnyContent, Action}
+import play.api.mvc.RequestHeader
 import play.api.test.WithApplication
-
 import scala.concurrent.Future
 import scala.util.Success
 
@@ -28,7 +31,7 @@ class GestaltPlaySpec extends Specification with Mockito {
     port = 1234,
     apiKey = Some("someKey"),
     apiSecret = Some("someSecret"),
-    appId = Some("appId")
+    appId = Some(UUID.randomUUID)
   )
 
   "GestaltSecuredInstanceController" should {
@@ -37,29 +40,39 @@ class GestaltPlaySpec extends Specification with Mockito {
       override def getSecurityConfig: Option[GestaltSecurityConfig] = Some(config)
     }
 
-    class TestControllerWithOrgRequest extends GestaltSecuredController {
-      def home() = Action.async { implicit request =>
-        GestaltFrameworkAuthRequest { "test.root" } {
-          securedRequest => Ok(securedRequest.identity.account.id.toString)
-        }
+    class TestFrameworkControllerSecurity extends GestaltFrameworkSecuredController[DummyAuthenticator] {
+      override def getAuthenticator: AuthenticatorService[DummyAuthenticator] = new DummyAuthenticatorService
+
+      // define a function based on the request header
+      def inSitu() = GestaltFrameworkAuthAction({rh: RequestHeader => rh.path}) {
+        securedRequest => Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds)
       }
 
-      def jsonPost() = Action.async(parse.json) { implicit request =>
-        GestaltFrameworkAuthRequest(request) { "test.root" } {
-          securedRequest => Ok(securedRequest.identity.account.id.toString)
-        }
+      // like above, but async+json
+      def inSituJsonAsync() = GestaltFrameworkAuthAction({rh: RequestHeader => rh.path}).async(parse.json) {
+        securedRequest => Future{Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds)}
+      }
+
+      // just pass a string
+      def fromArgs(someFQON: String) = GestaltFrameworkAuthAction(someFQON) {
+        securedRequest => Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds + " on org " + someFQON)
+      }
+
+      // just pass a string, async+json
+      def asyncJson() = GestaltFrameworkAuthAction("test.org").async(parse.json) {
+        securedRequest => Future{Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds)}
       }
     }
 
     // requires WithApplication to create wsclient
     "allow easy specification of config via override" in new WithApplication {
       val controller = new TestControllerWithConfigOverride(testConfig)
-      controller.securityConfig.protocol  must_== testConfig.protocol
-      controller.securityConfig.hostname  must_== testConfig.hostname
-      controller.securityConfig.port      must_== testConfig.port
-      controller.securityConfig.apiKey    must_== testConfig.apiKey
-      controller.securityConfig.apiSecret must_== testConfig.apiSecret
-      controller.securityConfig.appId     must_== testConfig.appId
+      controller.securityConfig.protocol   must_== testConfig.protocol
+      controller.securityConfig.hostname   must_== testConfig.hostname
+      controller.securityConfig.port       must_== testConfig.port
+      controller.securityConfig.apiKey     must_== testConfig.apiKey
+      controller.securityConfig.apiSecret  must_== testConfig.apiSecret
+      controller.securityConfig.appId      must_== testConfig.appId
     }
 
     object TestGlobal extends GlobalSettings with GlobalMeta {}
@@ -74,16 +87,16 @@ class GestaltPlaySpec extends Specification with Mockito {
       meta.local returns cl
       cl.context returns Some(GestaltContext("","","","",0,None,GestaltConfig.Environment("",""),""))
       val controller = new TestController(meta)
-      controller.securityClient.apiKey    must_== testConfig.apiKey.get
-      controller.securityClient.apiSecret must_== testConfig.apiSecret.get
-      controller.securityClient.protocol  must_== testConfig.protocol
-      controller.securityClient.hostname  must_== testConfig.hostname
+      controller.securityClient.apiKey     must_== testConfig.apiKey.get
+      controller.securityClient.apiSecret  must_== testConfig.apiSecret.get
+      controller.securityClient.protocol   must_== testConfig.protocol
+      controller.securityClient.hostname   must_== testConfig.hostname
 
-      controller.securityConfig.apiKey    must_== testConfig.apiKey
-      controller.securityConfig.apiSecret must_== testConfig.apiSecret
-      controller.securityConfig.protocol  must_== testConfig.protocol
-      controller.securityConfig.hostname  must_== testConfig.hostname
-      controller.securityConfig.appId     must_== testConfig.appId
+      controller.securityConfig.apiKey     must_== testConfig.apiKey
+      controller.securityConfig.apiSecret  must_== testConfig.apiSecret
+      controller.securityConfig.protocol   must_== testConfig.protocol
+      controller.securityConfig.hostname   must_== testConfig.hostname
+      controller.securityConfig.appId      must_== testConfig.appId
     }
 
   }

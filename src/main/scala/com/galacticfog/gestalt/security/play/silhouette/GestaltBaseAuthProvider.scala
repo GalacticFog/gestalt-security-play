@@ -11,6 +11,8 @@ import scala.concurrent.Future
 
 class GestaltLoginInfo(override val providerID: String, override val providerKey: String, val authResponse: GestaltAuthResponse) extends LoginInfo(providerID, providerKey)
 
+class GestaltLoginInfoWithCreds(override val providerID: String, override val providerKey: String, val authResponse: GestaltAuthResponse, val creds: Credentials) extends LoginInfo(providerID, providerKey)
+
 abstract class GestaltBaseAuthProvider(client: GestaltSecurityClient) extends RequestProvider {
 
   def gestaltAuth[B](request: Request[B], client: GestaltSecurityClient): Future[Option[GestaltAuthResponse]]

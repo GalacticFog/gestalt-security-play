@@ -8,13 +8,13 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc.Request
 import scala.concurrent.Future
 
-class GestaltAuthProvider(appId: String, client: GestaltSecurityClient) extends GestaltBaseAuthProvider(client) {
+class GestaltAuthProvider(appId: UUID, client: GestaltSecurityClient) extends GestaltBaseAuthProvider(client) {
   override def id: String = ID
 
   override def gestaltAuth[B](request: Request[B], client: GestaltSecurityClient): Future[Option[GestaltAuthResponse]] = {
     GestaltBaseAuthProvider.getCredentials(request) match {
       case Some(creds) =>
-        GestaltApp.authorizeUser(UUID.fromString(appId), GestaltBasicCredsToken(creds.identifier, creds.password))(client)
+        GestaltApp.authorizeUser(appId, GestaltBasicCredsToken(creds.identifier, creds.password))(client)
       case None =>
         Future.successful(None)
     }
