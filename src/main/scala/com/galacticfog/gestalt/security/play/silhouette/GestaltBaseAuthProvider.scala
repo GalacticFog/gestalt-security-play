@@ -19,12 +19,20 @@ abstract class GestaltBaseAuthProvider(client: GestaltSecurityClient) extends Re
 
   override def authenticate[B](request: Request[B]): Future[Option[LoginInfo]] = {
     val auth = gestaltAuth(request,client)
-    auth map { _.map {
-      ar => new GestaltLoginInfo(
-        providerID = id,
-        providerKey = ar.account.username,
-        authResponse = ar
-      )
+    auth map { _.map { ar: GestaltAuthResponse =>
+      ar match {
+        case arc: GestaltAuthResponseWithCreds => new GestaltLoginInfoWithCreds(
+          providerID = id,
+          providerKey = arc.account.username,
+          authResponse = arc,
+          creds = arc.creds
+        )
+        case ar => new GestaltLoginInfo(
+          providerID = id,
+          providerKey = ar.account.username,
+          authResponse = ar
+        )
+      }
     } } recover {
       case ce: java.net.ConnectException =>
         Logger.warn("ConnectException while trying to authenticate: " + ce.getMessage())

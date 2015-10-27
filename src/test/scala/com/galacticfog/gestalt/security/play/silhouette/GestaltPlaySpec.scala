@@ -44,24 +44,30 @@ class GestaltPlaySpec extends Specification with Mockito {
       override def getAuthenticator: AuthenticatorService[DummyAuthenticator] = new DummyAuthenticatorService
 
       // define a function based on the request header
-      def inSitu() = GestaltFrameworkAuthAction({rh: RequestHeader => rh.path}) {
+      def inSitu() = GestaltFrameworkAuthAction({rh: RequestHeader => Some(rh.path)}) {
         securedRequest => Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds)
       }
 
       // like above, but async+json
-      def inSituJsonAsync() = GestaltFrameworkAuthAction({rh: RequestHeader => rh.path}).async(parse.json) {
+      def inSituJsonAsync() = GestaltFrameworkAuthAction({rh: RequestHeader => Some(rh.path)}).async(parse.json) {
         securedRequest => Future{Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds)}
       }
 
       // just pass a string
-      def fromArgs(someFQON: String) = GestaltFrameworkAuthAction(someFQON) {
-        securedRequest => Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds + " on org " + someFQON)
+      def fromArgs(fqon: String) = GestaltFrameworkAuthAction(Some(fqon)) {
+        securedRequest => Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds + " on org " + fqon)
       }
 
       // just pass a string, async+json
-      def asyncJson() = GestaltFrameworkAuthAction("test.org").async(parse.json) {
+      def asyncJson() = GestaltFrameworkAuthAction(Some("test.org")).async(parse.json) {
         securedRequest => Future{Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds)}
       }
+
+      // how about a UUID? we got that covered! this authenticates against /orgs/:orgId/auth
+      def aUUID(orgId: UUID) = GestaltFrameworkAuthAction(Some(orgId)).async(parse.json) {
+        securedRequest => Future{Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds)}
+      }
+
     }
 
     // requires WithApplication to create wsclient

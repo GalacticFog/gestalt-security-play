@@ -1,5 +1,7 @@
 package com.galacticfog.gestalt.security.play.silhouette
 
+import java.util.UUID
+
 import com.galacticfog.gestalt.Gestalt
 import com.galacticfog.gestalt.security.api._
 import com.mohiva.play.silhouette.api.services.{AuthenticatorService, IdentityService}
@@ -12,20 +14,28 @@ import play.api.Play.current
 import scala.concurrent.Future
 
 case class AuthAccountWithCreds(account: GestaltAccount, groups: Seq[GestaltGroup], rights: Seq[GestaltRightGrant], creds: Credentials) extends Identity
-case class OrgContextRequest[B](orgFQON: String, request: Request[B]) extends WrappedRequest(request)
+case class OrgContextRequest[B](orgFQON: Option[String], request: Request[B]) extends WrappedRequest(request)
+case class OrgContextRequestUUID[B](orgId: Option[UUID], request: Request[B]) extends WrappedRequest(request)
 
 abstract class GestaltFrameworkSecuredController[A <: Authenticator](val meta: Option[Gestalt] = None) extends Silhouette[AuthAccountWithCreds, A] {
 
   def getAuthenticator: AuthenticatorService[A]
 
-  class GestaltFrameworkAuthActionBuilder(maybeGenFQON: Option[RequestHeader => String] = None) extends ActionBuilder[SecuredRequest] {
+  class GestaltFrameworkAuthActionBuilder(maybeGenFQON: Option[RequestHeader => Option[String]] = None) extends ActionBuilder[SecuredRequest] {
     def invokeBlock[B](request: Request[B], block: SecuredRequest[B] => Future[Result]) = {
-      val ocr = maybeGenFQON match {
-        case Some(genFQON) =>
-          OrgContextRequest(genFQON(request), request)
-        case None =>
-          OrgContextRequest("", request)
+      val ocr = OrgContextRequest(maybeGenFQON flatMap {_(request)}, request)
+      SecuredRequestHandler(ocr) { securedRequest =>
+        Future.successful(HandlerResult(Ok, Some(securedRequest)))
+      }.flatMap {
+        case HandlerResult(r, Some(sr)) => block(sr)
+        case HandlerResult(r, None) => Future.successful(Unauthorized)
       }
+    }
+  }
+
+  class GestaltFrameworkAuthActionBuilderUUID(maybeGenOrgId: Option[RequestHeader => Option[UUID]] = None) extends ActionBuilder[SecuredRequest] {
+    def invokeBlock[B](request: Request[B], block: SecuredRequest[B] => Future[Result]) = {
+      val ocr = OrgContextRequestUUID(maybeGenOrgId flatMap {_(request)}, request)
       SecuredRequestHandler(ocr) { securedRequest =>
         Future.successful(HandlerResult(Ok, Some(securedRequest)))
       }.flatMap {
@@ -36,8 +46,10 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator](val meta: O
   }
 
   object GestaltFrameworkAuthAction extends GestaltFrameworkAuthActionBuilder {
-    def apply(genFQON: RequestHeader => String) = new GestaltFrameworkAuthActionBuilder(Some(genFQON))
-    def apply(genFQON: => String) = new GestaltFrameworkAuthActionBuilder(Some({rh: RequestHeader => genFQON}))
+    def apply(genFQON: RequestHeader => Option[String]): GestaltFrameworkAuthActionBuilder = new GestaltFrameworkAuthActionBuilder(Some(genFQON))
+    def apply(genFQON: => Option[String]): GestaltFrameworkAuthActionBuilder = new GestaltFrameworkAuthActionBuilder(Some({rh: RequestHeader => genFQON}))
+    def apply(genOrgId: RequestHeader => Option[UUID]): GestaltFrameworkAuthActionBuilderUUID = new GestaltFrameworkAuthActionBuilderUUID(Some(genOrgId))
+    def apply(genOrgId: => Option[UUID]): GestaltFrameworkAuthActionBuilderUUID = new GestaltFrameworkAuthActionBuilderUUID(Some({rh: RequestHeader => genOrgId}))
   }
 
   def getFallbackSecurityConfig: GestaltSecurityConfig = GestaltSecurityConfig(
