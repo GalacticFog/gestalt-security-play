@@ -7,7 +7,7 @@ import com.galacticfog.gestalt.io.GestaltConfig
 import com.galacticfog.gestalt.io.GestaltConfig.GestaltContext
 import com.galacticfog.gestalt.io.internal.ContextLoader
 import com.galacticfog.gestalt.meta.play.utils.GlobalMeta
-import com.galacticfog.gestalt.security.api.{DELEGATED_SECURITY_MODE, HTTP, GestaltSecurityConfig}
+import com.galacticfog.gestalt.security.api._
 import com.mohiva.play.silhouette.api.services.AuthenticatorService
 import com.mohiva.play.silhouette.impl.authenticators.{DummyAuthenticatorService, DummyAuthenticator}
 import org.specs2.mock.Mockito
@@ -66,6 +66,62 @@ class GestaltPlaySpec extends Specification with Mockito {
       // how about a UUID? we got that covered! this authenticates against /orgs/:orgId/auth
       def aUUID(orgId: UUID) = GestaltFrameworkAuthAction(Some(orgId)).async(parse.json) {
         securedRequest => Future{Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds)}
+      }
+
+      // how about some authenticated methods with a credential-passthrough call to security?
+      def createOrgPassthrough(parentOrgId: UUID) = GestaltFrameworkAuthAction(Some(parentOrgId)).async(parse.json) {
+        securedRequest =>
+          val account = securedRequest.identity.account
+          val creds = securedRequest.identity.creds
+          GestaltOrg.createSubOrg(parentOrgId = parentOrgId, orgName = "someNewOrgName", username = creds.identifier, password = creds.password) map {
+            _.map {
+              // do what you were going to do
+              newOrg => Created(Json.obj(
+                "newAccountId" -> newOrg.id,
+                "createdBy" -> account.id
+              ))
+            }.get
+          }
+      }
+
+      def deleteOrgPassthrough(orgId: UUID) = GestaltFrameworkAuthAction(Some(orgId)).async(parse.json) {
+        securedRequest =>
+          val account = securedRequest.identity.account
+          val creds = securedRequest.identity.creds
+          GestaltOrg.deleteOrg(orgId = orgId, username = creds.identifier, password = creds.password) map {
+            _.map {
+              // do what you were going to do
+              newOrg => Ok(Json.obj(
+                "deletedOrgId" -> orgId,
+                "deletedBy" -> account.id
+              ))
+            }.get
+          }
+      }
+
+      def createAccountPassthrough(parentOrgId: UUID) = GestaltFrameworkAuthAction(Some(parentOrgId)).async(parse.json) {
+        securedRequest =>
+          val account = securedRequest.identity.account
+          val someExistingGroupId = UUID.randomUUID()
+          val creds = securedRequest.identity.creds
+          GestaltOrg.createAccount(orgId = parentOrgId, GestaltAccountCreateWithRights(
+            username = "bsmith",
+            firstName = "bob",
+            lastName = "smith",
+            email = "bsmith@myorg",
+            phoneNumber = "505-867-5309",
+            credential = GestaltPasswordCredential("bob's password"),
+            groups = Some(Seq(someExistingGroupId)),
+            rights = Some(Seq(GestaltGrantCreate("freedom")))
+          ), creds.identifier, creds.password) map {
+            _.map {
+              // do what you were going to do
+              newOrg => Created(Json.obj(
+                "newAccountId" -> newOrg.id,
+                "createdBy" -> account.id
+              ))
+            }.get
+          }
       }
 
     }

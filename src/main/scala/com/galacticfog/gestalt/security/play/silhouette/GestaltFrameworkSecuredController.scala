@@ -82,7 +82,7 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator](val meta: O
 
   Logger.info(s"bound security in framework mode to ${securityConfig.protocol}://${securityConfig.hostname}:${securityConfig.port}")
 
-  val securityClient: GestaltSecurityClient = GestaltSecurityClient(securityConfig)
+  implicit val securityClient: GestaltSecurityClient = GestaltSecurityClient(securityConfig)
   val authProvider = new GestaltFrameworkAuthProvider(securityClient)
 
   // override for Silhouette

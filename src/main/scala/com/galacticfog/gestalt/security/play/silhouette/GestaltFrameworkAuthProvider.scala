@@ -39,7 +39,7 @@ class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends Gestal
                 }
               case _ =>
                 // try without the org; valid API credentials will still succeed
-                GestaltOrg.authorizeFrameworkUser(username = creds.identifier, password = creds.password)(client) map {
+                GestaltOrg.authorizeFrameworkUser(apiKey = creds.identifier, apiSecret = creds.password)(client) map {
                   _.map { success => new GestaltAuthResponseWithCreds(success.account, success.groups, success.rights, success.orgId, creds) }
                 }
             }
