@@ -2,7 +2,7 @@ package com.galacticfog.gestalt.security.play.silhouette
 
 import java.util.UUID
 
-import com.galacticfog.gestalt.security.api.{GestaltRightGrant, GestaltAccount}
+import com.galacticfog.gestalt.security.api.{GestaltDirectory, GestaltRightGrant, GestaltAccount}
 import com.galacticfog.gestalt.security.play.silhouette.authorization.{matchesValue, hasValue, matchesGrant, hasGrant}
 import org.junit.runner._
 import org.specs2.mock.Mockito
@@ -21,7 +21,7 @@ class GrantSpecs extends Specification with Mockito with Tables {
   implicit val lang = mock[Lang]
 
   def makeAuth(rights: Seq[GestaltRightGrant]) = AuthAccount(
-    account = GestaltAccount(id = UUID.randomUUID, username = "john", "John", "Doe", "jdoe@gmail.com", directoryId = UUID.randomUUID, phoneNumber = ""),
+    account = GestaltAccount(id = UUID.randomUUID, username = "john", "John", "Doe", "jdoe@gmail.com", phoneNumber = "", directory = GestaltDirectory(id = UUID.randomUUID(), "", "", UUID.randomUUID())),
     groups = Seq(),
     rights = rights
   )
