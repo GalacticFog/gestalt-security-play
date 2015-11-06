@@ -13,7 +13,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.Play.current
 import scala.concurrent.Future
 
-case class AuthAccountWithCreds(account: GestaltAccount, groups: Seq[GestaltGroup], rights: Seq[GestaltRightGrant], creds: Credentials) extends Identity
+case class AuthAccountWithCreds(account: GestaltAccount, groups: Seq[GestaltGroup], rights: Seq[GestaltRightGrant], creds: Credentials, authenticatingOrgId: UUID) extends Identity
 case class OrgContextRequest[B](orgFQON: Option[String], request: Request[B]) extends WrappedRequest(request)
 case class OrgContextRequestUUID[B](orgId: Option[UUID], request: Request[B]) extends WrappedRequest(request)
 

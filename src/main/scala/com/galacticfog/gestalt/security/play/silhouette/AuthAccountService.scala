@@ -20,7 +20,7 @@ class AccountServiceImplWithCreds extends IdentityService[AuthAccountWithCreds] 
   override def retrieve(loginInfo: LoginInfo): Future[Option[AuthAccountWithCreds]] = Future {
     loginInfo match {
       case glo: GestaltLoginInfoWithCreds =>
-        Some(AuthAccountWithCreds(glo.authResponse.account, glo.authResponse.groups, glo.authResponse.rights, glo.creds))
+        Some(AuthAccountWithCreds(glo.authResponse.account, glo.authResponse.groups, glo.authResponse.rights, glo.creds, glo.authResponse.orgId))
       case _ => None
     }
   }

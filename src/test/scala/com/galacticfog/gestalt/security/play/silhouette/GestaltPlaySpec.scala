@@ -118,7 +118,8 @@ class GestaltPlaySpec extends Specification with Mockito {
               // do what you were going to do
               newOrg => Created(Json.obj(
                 "newAccountId" -> newOrg.id,
-                "createdBy" -> account.id
+                "createdBy" -> account.id,
+                "authenticatedIn" -> securedRequest.identity.authenticatingOrgId
               ))
             }.get
           }
