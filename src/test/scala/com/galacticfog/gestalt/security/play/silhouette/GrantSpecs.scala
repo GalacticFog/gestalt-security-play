@@ -1,6 +1,8 @@
 package com.galacticfog.gestalt.security.play.silhouette
 
-import com.galacticfog.gestalt.security.api.{GestaltRightGrant, GestaltAccount}
+import java.util.UUID
+
+import com.galacticfog.gestalt.security.api.{GestaltDirectory, GestaltRightGrant, GestaltAccount}
 import com.galacticfog.gestalt.security.play.silhouette.authorization.{matchesValue, hasValue, matchesGrant, hasGrant}
 import org.junit.runner._
 import org.specs2.mock.Mockito
@@ -19,32 +21,35 @@ class GrantSpecs extends Specification with Mockito with Tables {
   implicit val lang = mock[Lang]
 
   def makeAuth(rights: Seq[GestaltRightGrant]) = AuthAccount(
-    account = GestaltAccount("john", "John", "Doe", "jdoe@gmail.com"),
+    account = GestaltAccount(id = UUID.randomUUID, username = "john", "John", "Doe", "jdoe@gmail.com", phoneNumber = "", directory = GestaltDirectory(id = UUID.randomUUID(), "", "", UUID.randomUUID())),
+    groups = Seq(),
     rights = rights
   )
 
-  def simpleRight(rightName: String) = makeAuth(Seq(GestaltRightGrant(rightName,None)))
+  def rightGrant(rightName: String, value: Option[String]) = GestaltRightGrant(id = UUID.randomUUID, rightName, value, appId = UUID.randomUUID)
+  def rightGrant(rightName: String, value: String) = GestaltRightGrant(id = UUID.randomUUID, rightName, Some(value), appId = UUID.randomUUID)
+  def rightGrant(rightName: String) = GestaltRightGrant(id = UUID.randomUUID, rightName, None, appId = UUID.randomUUID)
 
   "hasGrant" should {
 
     "match when solely present with no value" in {
       val grantName = "testGrant"
-      val oneRight = makeAuth(Seq(GestaltRightGrant(grantName, None)))
+      val oneRight = makeAuth(Seq(rightGrant(grantName, None)))
       hasGrant(grantName).isAuthorized(oneRight) must beTrue
     }
 
     "match when solely present with Some value" in {
       val grantName = "testGrant"
-      val oneRight = makeAuth(Seq(GestaltRightGrant(grantName, Some("value"))))
+      val oneRight = makeAuth(Seq(rightGrant(grantName, Some("value"))))
       hasGrant(grantName).isAuthorized(oneRight) must beTrue
     }
 
     "match when present amongst others" in {
       val grantName = "testGrant"
       val manyRights = makeAuth(Seq(
-        GestaltRightGrant(grantName, None),
-        GestaltRightGrant("anotherGrant",None),
-        GestaltRightGrant("thirdGrant",None)
+        rightGrant(grantName, None),
+        rightGrant("anotherGrant",None),
+        rightGrant("thirdGrant",None)
       ))
       hasGrant(grantName).isAuthorized(manyRights) must beTrue
     }
@@ -56,8 +61,8 @@ class GrantSpecs extends Specification with Mockito with Tables {
 
     "not match when not present" in {
       val someRights = makeAuth(Seq(
-        GestaltRightGrant("rightOne", None),
-        GestaltRightGrant("rightTwo", None)
+        rightGrant("rightOne", None),
+        rightGrant("rightTwo", None)
       ))
       hasGrant("rightWrong").isAuthorized(someRights) must beFalse
     }
@@ -67,12 +72,12 @@ class GrantSpecs extends Specification with Mockito with Tables {
   "hasValue" should {
 
     "match when has named value" in {
-      val right = makeAuth(Seq(GestaltRightGrant("foo",Some("bar"))))
+      val right = makeAuth(Seq(rightGrant("foo",Some("bar"))))
       hasValue("foo","bar").isAuthorized(right) must beTrue
     }
 
     "not match when named value is None" in {
-      val right = makeAuth(Seq(GestaltRightGrant("foo",None)))
+      val right = makeAuth(Seq(rightGrant("foo",None)))
       hasValue("foo","bar").isAuthorized(right) must beFalse
     }
 
@@ -81,24 +86,24 @@ class GrantSpecs extends Specification with Mockito with Tables {
   "matchesValues" should {
     "match when values matches w.r.t. matcher" in {
       val n = "foo"
-      val right = makeAuth(Seq(GestaltRightGrant(n,Some("BAR"))))
+      val right = makeAuth(Seq(rightGrant(n,Some("BAR"))))
       matchesValue(n,"bar"){_ equalsIgnoreCase _}.isAuthorized(right) must beTrue
     }
 
     "not match when values don't match w.r.t matcher" in {
       val n = "foo"
       val v = "bar"
-      val right = makeAuth(Seq(GestaltRightGrant(n,Some(v))))
+      val right = makeAuth(Seq(rightGrant(n,Some(v))))
       matchesValue(n,v){(_,_) => false}.isAuthorized(right) must beFalse
     }
 
     "not match when name doesn't match" in {
-      val right = makeAuth(Seq(GestaltRightGrant("foo1",Some("bar"))))
+      val right = makeAuth(Seq(rightGrant("foo1",Some("bar"))))
       matchesValue("foo2","bar"){(_,_) => true}.isAuthorized(right) must beFalse
     }
 
     "not match when value doesn't exist" in {
-      val right = makeAuth(Seq(GestaltRightGrant("foo",None)))
+      val right = makeAuth(Seq(rightGrant("foo",None)))
       matchesValue("foo","bar"){(_,_) => true}.isAuthorized(right) must beFalse
     }
   }
@@ -106,7 +111,7 @@ class GrantSpecs extends Specification with Mockito with Tables {
 
   "matchesGrant" should {
 
-    def testGrant(grantName: String, test: String) = matchesGrant(test).isAuthorized(simpleRight(grantName))
+    def testGrant(grantName: String, test: String) = matchesGrant(test).isAuthorized(makeAuth(Seq(rightGrant(grantName))))
 
     "match when exact" in {
       "grant"         | "test"        |>
