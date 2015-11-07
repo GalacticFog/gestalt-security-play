@@ -1,3 +1,6 @@
+------ 1.2.0 -------
+- numerous changes supporting gestalt framework authentication
+
 ------ 1.1.2 -------
 - Removed hard-coded resolvers
 - Updated build dependencies to relessed versions
