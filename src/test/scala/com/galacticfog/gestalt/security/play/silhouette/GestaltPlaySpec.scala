@@ -73,14 +73,12 @@ class GestaltPlaySpec extends Specification with Mockito {
         securedRequest =>
           val account = securedRequest.identity.account
           val creds = securedRequest.identity.creds
-          GestaltOrg.createSubOrg(parentOrgId = parentOrgId, orgName = "someNewOrgName", username = creds.identifier, password = creds.password) map {
-            _.map {
-              // do what you were going to do
-              newOrg => Created(Json.obj(
-                "newAccountId" -> newOrg.id,
-                "createdBy" -> account.id
-              ))
-            }.get
+          GestaltOrg.createSubOrg(parentOrgId = parentOrgId, name = "someNewOrgName", username = creds.identifier, password = creds.password) map {
+            // do what you were going to do
+            newOrg => Created(Json.obj(
+              "newAccountId" -> newOrg.id,
+              "createdBy" -> account.id
+            ))
           }
       }
 
@@ -89,13 +87,11 @@ class GestaltPlaySpec extends Specification with Mockito {
           val account = securedRequest.identity.account
           val creds = securedRequest.identity.creds
           GestaltOrg.deleteOrg(orgId = orgId, username = creds.identifier, password = creds.password) map {
-            _.map {
               // do what you were going to do
-              newOrg => Ok(Json.obj(
-                "deletedOrgId" -> orgId,
-                "deletedBy" -> account.id
-              ))
-            }.get
+            newOrg => Ok(Json.obj(
+              "deletedOrgId" -> orgId,
+              "deletedBy" -> account.id
+            ))
           }
       }
 
@@ -114,14 +110,12 @@ class GestaltPlaySpec extends Specification with Mockito {
             groups = Some(Seq(someExistingGroupId)),
             rights = Some(Seq(GestaltGrantCreate("freedom")))
           ), creds.identifier, creds.password) map {
-            _.map {
               // do what you were going to do
-              newOrg => Created(Json.obj(
-                "newAccountId" -> newOrg.id,
-                "createdBy" -> account.id,
-                "authenticatedIn" -> securedRequest.identity.authenticatingOrgId
-              ))
-            }.get
+            newOrg => Created(Json.obj(
+              "newAccountId" -> newOrg.id,
+              "createdBy" -> account.id,
+              "authenticatedIn" -> securedRequest.identity.authenticatingOrgId
+            ))
           }
       }
 
@@ -148,7 +142,7 @@ class GestaltPlaySpec extends Specification with Mockito {
       meta.getConfig("authentication") returns Success(Json.toJson(testConfig).toString)
       val cl = mock[ContextLoader]
       meta.local returns cl
-      cl.context returns Some(GestaltContext("","","","",0,None,GestaltConfig.Environment("",""),""))
+      cl.context returns Some(GestaltContext("","",UUID.randomUUID,"",0,None,GestaltConfig.Environment("",""),"",None))
       val controller = new TestController(meta)
       controller.securityClient.apiKey     must_== testConfig.apiKey.get
       controller.securityClient.apiSecret  must_== testConfig.apiSecret.get
