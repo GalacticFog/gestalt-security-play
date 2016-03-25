@@ -31,7 +31,7 @@ class GestaltSecuredController(val meta: Option[Gestalt]) extends Silhouette[Aut
 
   val securityConfig: GestaltSecurityConfig = try {
     Logger.info("attempting to determine GestaltSecurityConfig for delegated authentication controller")
-    val c: Option[GestaltSecurityConfig] = getSecurityConfig orElse GestaltSecurityConfig.getSecurityConfig(meta)
+    val c: Option[GestaltSecurityConfig] = getSecurityConfig orElse GestaltSecurityConfig.getSecurityConfig
     c.flatMap( config =>
       if (config.mode == DELEGATED_SECURITY_MODE && config.isWellDefined) Some(config)
       else None

@@ -66,7 +66,7 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator](val meta: O
 
   val securityConfig: GestaltSecurityConfig = try {
     Logger.info("attempting to determine GestaltSecurityConfig for framework authentication controller")
-    val c: Option[GestaltSecurityConfig] = getSecurityConfig orElse GestaltSecurityConfig.getSecurityConfig(meta)
+    val c: Option[GestaltSecurityConfig] = getSecurityConfig orElse GestaltSecurityConfig.getSecurityConfig
     c.flatMap( config =>
       if (config.mode == FRAMEWORK_SECURITY_MODE && config.isWellDefined) Some(config)
       else None
