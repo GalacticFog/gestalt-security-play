@@ -38,6 +38,9 @@ libraryDependencies ++= Seq(
   "com.galacticfog" %% "gestalt-security-sdk-scala" % "2.1.0-SNAPSHOT" withSources()
 )
 
+// MockWS for testing
+libraryDependencies += "de.leanovate.play-mockws" %% "play-mockws" % "2.3.0" % "test" withSources()
+
 // ----------------------------------------------------------------------------
 // Silhouette
 // ----------------------------------------------------------------------------

@@ -2,22 +2,20 @@ package com.galacticfog.gestalt.security.play.silhouette
 
 import java.util.UUID
 
-import com.galacticfog.gestalt.Gestalt
 import com.galacticfog.gestalt.security.api._
 import com.mohiva.play.silhouette.api.services.{AuthenticatorService, IdentityService}
 import com.mohiva.play.silhouette.api._
-import com.mohiva.play.silhouette.api.util.Credentials
 import play.api.Logger
 import play.api.mvc._
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.Play.current
 import scala.concurrent.Future
 
-case class AuthAccountWithCreds(account: GestaltAccount, groups: Seq[GestaltGroup], rights: Seq[GestaltRightGrant], creds: Credentials, authenticatingOrgId: UUID) extends Identity
+case class AuthAccountWithCreds(account: GestaltAccount, groups: Seq[GestaltGroup], rights: Seq[GestaltRightGrant], creds: GestaltAPICredentials, authenticatingOrgId: UUID) extends Identity
 case class OrgContextRequest[B](orgFQON: Option[String], request: Request[B]) extends WrappedRequest(request)
 case class OrgContextRequestUUID[B](orgId: Option[UUID], request: Request[B]) extends WrappedRequest(request)
 
-abstract class GestaltFrameworkSecuredController[A <: Authenticator](val meta: Option[Gestalt] = None) extends Silhouette[AuthAccountWithCreds, A] {
+abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends Silhouette[AuthAccountWithCreds, A] {
 
   def getAuthenticator: AuthenticatorService[A]
 

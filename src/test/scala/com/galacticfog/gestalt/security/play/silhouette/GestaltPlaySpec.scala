@@ -2,27 +2,26 @@ package com.galacticfog.gestalt.security.play.silhouette
 
 import java.util.UUID
 
-import com.galacticfog.gestalt.Gestalt
-import com.galacticfog.gestalt.io.GestaltConfig
-import com.galacticfog.gestalt.io.GestaltConfig.GestaltContext
-import com.galacticfog.gestalt.io.internal.ContextLoader
-import com.galacticfog.gestalt.meta.play.utils.GlobalMeta
 import com.galacticfog.gestalt.security.api._
 import com.mohiva.play.silhouette.api.services.AuthenticatorService
 import com.mohiva.play.silhouette.impl.authenticators.{DummyAuthenticatorService, DummyAuthenticator}
+import mockws.MockWS
 import org.specs2.mock.Mockito
 import org.specs2.mutable._
 import org.specs2.runner._
 import org.junit.runner._
-import play.api.GlobalSettings
 import play.api.libs.json.Json
 import play.api.mvc.RequestHeader
-import play.api.test.WithApplication
+import play.api.test.{FakeHeaders, FakeRequest, WithApplication}
 import scala.concurrent.Future
-import scala.util.Success
+import play.api.mvc._
+import play.api.mvc.Action
+import play.api.mvc.Results._
+import play.api.test.Helpers._
+import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 
 @RunWith(classOf[JUnitRunner])
-class GestaltPlaySpec extends Specification with Mockito {
+class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with DefaultAwaitTimeout {
 
   val testConfig = GestaltSecurityConfig(
     mode = DELEGATED_SECURITY_MODE,
@@ -34,12 +33,13 @@ class GestaltPlaySpec extends Specification with Mockito {
     appId = Some(UUID.randomUUID)
   )
 
-  "GestaltSecuredInstanceController" should {
+  "GestaltSecuredController" should {
 
     class TestControllerWithConfigOverride(config: GestaltSecurityConfig) extends GestaltSecuredController {
       override def getSecurityConfig: Option[GestaltSecurityConfig] = Some(config)
     }
 
+    // TODO: need to add some tests of this, but compilation alone is a useful example
     class TestFrameworkControllerSecurity extends GestaltFrameworkSecuredController[DummyAuthenticator] {
       override def getAuthenticator: AuthenticatorService[DummyAuthenticator] = new DummyAuthenticatorService
 
@@ -73,7 +73,7 @@ class GestaltPlaySpec extends Specification with Mockito {
         securedRequest =>
           val account = securedRequest.identity.account
           val creds = securedRequest.identity.creds
-          GestaltOrg.createSubOrg(parentOrgId = parentOrgId, name = "someNewOrgName", username = creds.identifier, password = creds.password) map {
+          GestaltOrg.createSubOrg(parentOrgId = parentOrgId, name = "someNewOrgName", username = creds.username, password = creds.password) map {
             // do what you were going to do
             newOrg => Created(Json.obj(
               "newAccountId" -> newOrg.id,
@@ -132,28 +132,28 @@ class GestaltPlaySpec extends Specification with Mockito {
       controller.securityConfig.appId      must_== testConfig.appId
     }
 
-    object TestGlobal extends GlobalSettings with GlobalMeta {}
+  }
 
-    class TestController(meta: Gestalt) extends GestaltSecuredController(Some(meta)) {
-    }
+  "GestaltFrameworkAuthProvider" should {
 
-    "get config from meta by default" in new WithApplication {
-      val meta = mock[Gestalt]
-      meta.getConfig("authentication") returns Success(Json.toJson(testConfig).toString)
-      val cl = mock[ContextLoader]
-      meta.local returns cl
-      cl.context returns Some(GestaltContext("","",UUID.randomUUID,"",0,None,GestaltConfig.Environment("",""),"",None))
-      val controller = new TestController(meta)
-      controller.securityClient.apiKey     must_== testConfig.apiKey.get
-      controller.securityClient.apiSecret  must_== testConfig.apiSecret.get
-      controller.securityClient.protocol   must_== testConfig.protocol
-      controller.securityClient.hostname   must_== testConfig.hostname
-
-      controller.securityConfig.apiKey     must_== testConfig.apiKey
-      controller.securityConfig.apiSecret  must_== testConfig.apiSecret
-      controller.securityConfig.protocol   must_== testConfig.protocol
-      controller.securityConfig.hostname   must_== testConfig.hostname
-      controller.securityConfig.appId      must_== testConfig.appId
+    "authenticate using remote-validated tokens" in {
+//      val securityHostname = "security.local"
+//      val securityPort = 9455
+//      val url = ""
+//      val apiKey = "nokey"
+//      val apiSecret = "nosecret"
+//      val ws = MockWS {
+//        case (GET,url) => Action { implicit request => Ok("")}
+//      }
+//      val client = GestaltSecurityClient(ws, HTTP, securityHostname, securityPort, apiKey, apiSecret)
+      val request = FakeRequest("GET", "securedEndpoint", FakeHeaders(
+        Seq(AUTHORIZATION -> Seq("Bearer TOKEN"))
+      ), AnyContentAsEmpty)
+      val ocRequest = OrgContextRequest(Some("root"),request)
+      val client = mock[GestaltSecurityClient]
+      val frameworkProvider = new GestaltFrameworkAuthProvider(client)
+      val resp = await(frameworkProvider.gestaltAuthImpl(ocRequest))
+      resp must beSome
     }
 
   }

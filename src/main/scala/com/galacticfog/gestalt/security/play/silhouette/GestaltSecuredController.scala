@@ -2,7 +2,6 @@ package com.galacticfog.gestalt.security.play.silhouette
 
 import java.util.UUID
 
-import com.galacticfog.gestalt.Gestalt
 import com.galacticfog.gestalt.security.api._
 import com.mohiva.play.silhouette.api.services.{IdentityService, AuthenticatorService}
 import com.mohiva.play.silhouette.api._
@@ -13,9 +12,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 
 case class AuthAccount(account: GestaltAccount, groups: Seq[GestaltGroup], rights: Seq[GestaltRightGrant]) extends Identity
 
-class GestaltSecuredController(val meta: Option[Gestalt]) extends Silhouette[AuthAccount, DummyAuthenticator] {
-
-  def this() = this(meta = None)
+class GestaltSecuredController() extends Silhouette[AuthAccount, DummyAuthenticator] {
 
   def getFallbackSecurityConfig: GestaltSecurityConfig = GestaltSecurityConfig(
     mode = DELEGATED_SECURITY_MODE,
