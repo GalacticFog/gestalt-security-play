@@ -5,6 +5,7 @@ import java.util.UUID
 import com.galacticfog.gestalt.security.api._
 import com.galacticfog.gestalt.security.play.silhouette.GestaltAuthProvider._
 import play.api.Logger
+import play.api.http.HeaderNames
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc.Request
 import scala.concurrent.Future
@@ -13,7 +14,7 @@ class GestaltAuthProvider(appId: UUID, client: GestaltSecurityClient) extends Ge
   override def id: String = ID
 
   override def gestaltAuthImpl[B](request: Request[B]): Future[Option[GestaltAuthResponse]] = {
-    GestaltBaseAuthProvider.getCredentials(request) match {
+    request.headers.get(HeaderNames.AUTHORIZATION) flatMap GestaltAPICredentials.getCredentials match {
       case Some(creds: GestaltBasicCredentials) =>
         GestaltApp.authorizeUser(appId, GestaltBasicCredsToken(creds.username, creds.password))(client)
       case Some(creds: GestaltBearerCredentials) =>

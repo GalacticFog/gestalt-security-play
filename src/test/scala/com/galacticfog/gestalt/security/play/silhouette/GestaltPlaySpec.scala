@@ -73,7 +73,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
         securedRequest =>
           val account = securedRequest.identity.account
           val creds = securedRequest.identity.creds
-          GestaltOrg.createSubOrg(parentOrgId = parentOrgId, name = "someNewOrgName", username = creds.username, password = creds.password) map {
+          GestaltOrg.createSubOrg(parentOrgId = parentOrgId, name = "someNewOrgName", creds) map {
             // do what you were going to do
             newOrg => Created(Json.obj(
               "newAccountId" -> newOrg.id,
@@ -86,7 +86,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
         securedRequest =>
           val account = securedRequest.identity.account
           val creds = securedRequest.identity.creds
-          GestaltOrg.deleteOrg(orgId = orgId, username = creds.identifier, password = creds.password) map {
+          GestaltOrg.deleteOrg(orgId = orgId, creds) map {
               // do what you were going to do
             newOrg => Ok(Json.obj(
               "deletedOrgId" -> orgId,
@@ -109,7 +109,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
             credential = GestaltPasswordCredential("bob's password"),
             groups = Some(Seq(someExistingGroupId)),
             rights = Some(Seq(GestaltGrantCreate("freedom")))
-          ), creds.identifier, creds.password) map {
+          ), creds) map {
               // do what you were going to do
             newOrg => Created(Json.obj(
               "newAccountId" -> newOrg.id,
@@ -136,24 +136,34 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
 
   "GestaltFrameworkAuthProvider" should {
 
+    import com.galacticfog.gestalt.security.api.json.JsonImports.authFormat
+
     "authenticate using remote-validated tokens" in {
-//      val securityHostname = "security.local"
-//      val securityPort = 9455
-//      val url = ""
-//      val apiKey = "nokey"
-//      val apiSecret = "nosecret"
-//      val ws = MockWS {
-//        case (GET,url) => Action { implicit request => Ok("")}
-//      }
-//      val client = GestaltSecurityClient(ws, HTTP, securityHostname, securityPort, apiKey, apiSecret)
+      val securityHostname = "security.local"
+      val securityPort = 9455
+      val url = s"http://${securityHostname}:${securityPort}/auth"
+      val apiKey = "nokey"
+      val apiSecret = "nosecret"
+      val authResponse = GestaltAuthResponse(
+        account = GestaltAccount(UUID.randomUUID(), "username", "", "", "", "", GestaltDirectory(
+          UUID.randomUUID(), "name", "", UUID.randomUUID()
+        )),
+        groups = Seq(),
+        rights = Seq(),
+        orgId = UUID.randomUUID()
+      )
+      val ws = MockWS {
+        case (POST,url) => Action { implicit request => Ok(Json.toJson(authResponse))}
+      }
+      val client = GestaltSecurityClient(ws, HTTP, securityHostname, securityPort, apiKey, apiSecret)
+      val creds = GestaltBasicCredentials("root", "letmein")
       val request = FakeRequest("GET", "securedEndpoint", FakeHeaders(
-        Seq(AUTHORIZATION -> Seq("Bearer TOKEN"))
+        Seq(AUTHORIZATION -> Seq("Basic " + creds.headerValue))
       ), AnyContentAsEmpty)
       val ocRequest = OrgContextRequest(Some("root"),request)
-      val client = mock[GestaltSecurityClient]
       val frameworkProvider = new GestaltFrameworkAuthProvider(client)
       val resp = await(frameworkProvider.gestaltAuthImpl(ocRequest))
-      resp must beSome
+      resp must beSome(authResponse)
     }
 
   }

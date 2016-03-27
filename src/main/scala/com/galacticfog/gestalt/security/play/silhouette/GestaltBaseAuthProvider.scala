@@ -1,6 +1,6 @@
 package com.galacticfog.gestalt.security.play.silhouette
 
-import com.galacticfog.gestalt.security.api.{GestaltAuthResponse, GestaltSecurityClient}
+import com.galacticfog.gestalt.security.api.{GestaltBasicCredentials, GestaltAPICredentials, GestaltAuthResponse, GestaltSecurityClient}
 import com.mohiva.play.silhouette.api.{LoginInfo, RequestProvider}
 import com.mohiva.play.silhouette.api.util.Base64
 import play.api.Logger
@@ -40,26 +40,6 @@ abstract class GestaltBaseAuthProvider(client: GestaltSecurityClient) extends Re
       case t: Throwable =>
         Logger.warn("Caught exception while trying to authenticate",t)
         None
-    }
-  }
-
-}
-
-object GestaltBaseAuthProvider {
-
-  /**
-   * Decodes the credentials.
-   *
-   * @param request Contains the colon-separated name-value pairs in clear-text string format
-   * @return The users credentials as plaintext
-   */
-  def getCredentials(request: RequestHeader): Option[GestaltAPICredentials] = {
-    request.headers.get(HeaderNames.AUTHORIZATION) match {
-      case Some(header) => Base64.decode(header.replace("Basic ", "")).split(":") match {
-        case credentials if credentials.length == 2 => Some(GestaltBasicCredentials(credentials(0), credentials(1)))
-        case _ => None
-      }
-      case None => None
     }
   }
 
