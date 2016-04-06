@@ -138,7 +138,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
 
     import com.galacticfog.gestalt.security.api.json.JsonImports.authFormat
 
-    "authenticate using remote-validated tokens" in {
+    "authenticate using basic auth" in {
       val securityHostname = "security.local"
       val securityPort = 9455
       val url = s"http://${securityHostname}:${securityPort}/auth"
@@ -159,6 +159,35 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       val creds = GestaltBasicCredentials("root", "letmein")
       val request = FakeRequest("GET", "securedEndpoint", FakeHeaders(
         Seq(AUTHORIZATION -> Seq("Basic " + creds.headerValue))
+      ), AnyContentAsEmpty)
+      val ocRequest = OrgContextRequest(Some("root"),request)
+      val frameworkProvider = new GestaltFrameworkAuthProvider(client)
+      val resp = await(frameworkProvider.gestaltAuthImpl(ocRequest))
+      resp must beSome(authResponse)
+    }
+
+    "authenticate using remote validated tokens" in {
+      val securityHostname = "security.local"
+      val securityPort = 9455
+      val url = s"http://${securityHostname}:${securityPort}/auth"
+      val token = UUID.randomUUID().toString
+      val apiKey = "nokey"
+      val apiSecret = "nosecret"
+      val authResponse = GestaltAuthResponse(
+        account = GestaltAccount(UUID.randomUUID(), "username", "", "", "", "", GestaltDirectory(
+          UUID.randomUUID(), "name", "", UUID.randomUUID()
+        )),
+        groups = Seq(),
+        rights = Seq(),
+        orgId = UUID.randomUUID()
+      )
+      val ws = MockWS {
+        case (POST,url) => Action { implicit request => Ok(Json.toJson(authResponse))}
+      }
+      val client = GestaltSecurityClient(ws, HTTP, securityHostname, securityPort, apiKey, apiSecret)
+      val creds = GestaltBearerCredentials(token)
+      val request = FakeRequest("GET", "securedEndpoint", FakeHeaders(
+        Seq(AUTHORIZATION -> Seq("Bearer " + creds.headerValue))
       ), AnyContentAsEmpty)
       val ocRequest = OrgContextRequest(Some("root"),request)
       val frameworkProvider = new GestaltFrameworkAuthProvider(client)

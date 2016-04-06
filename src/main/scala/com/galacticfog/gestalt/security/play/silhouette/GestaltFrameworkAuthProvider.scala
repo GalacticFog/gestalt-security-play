@@ -2,6 +2,7 @@ package com.galacticfog.gestalt.security.play.silhouette
 
 import java.util.UUID
 
+import com.galacticfog.gestalt.security.api.GestaltToken.ACCESS_TOKEN
 import com.galacticfog.gestalt.security.api._
 
 import play.api.Logger
@@ -23,7 +24,35 @@ class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends Gestal
     request.headers.get(HeaderNames.AUTHORIZATION) flatMap GestaltAPICredentials.getCredentials match {
       case Some(creds: GestaltBearerCredentials) =>
         Logger.info("found Bearer creds; cannot use these yet")
-        Future.successful(None)
+        request match {
+          case OrgContextRequestUUID(Some(orgId),_) =>
+            GestaltOrg.validateToken(orgId = orgId, token = OpaqueToken(UUID.fromString(creds.token), ACCESS_TOKEN) ) map {
+              _ match {
+                case INVALID_TOKEN => None
+                case valid: ValidTokenResponse => Some(GestaltAuthResponse(
+                  account = ???,
+                  groups =  ???,
+                  rights = valid.gestalt_rights,
+                  orgId = orgId
+                ))
+              }
+            }
+          case OrgContextRequest(Some(fqon),_) =>
+            GestaltOrg.validateToken(orgFQON = fqon, token = OpaqueToken(UUID.fromString(creds.token), ACCESS_TOKEN) ) map {
+              _ match {
+                case INVALID_TOKEN => None
+                case valid: ValidTokenResponse => Some(GestaltAuthResponse(
+                  account = ???,
+                  groups =  ???,
+                  rights = valid.gestalt_rights,
+                  orgId = ???
+                ))
+              }
+            }
+          case _ =>
+            Logger.info("Token authentication currently only valid against specified orgs")
+            Future.successful(None)
+        }
       case Some(creds: GestaltBasicCredentials) =>
         Logger.info("found Basic creds")
         request match {
