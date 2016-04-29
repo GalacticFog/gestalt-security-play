@@ -26,7 +26,7 @@ class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends Gestal
         Logger.info("found Bearer creds; cannot use these yet")
         request match {
           case OrgContextRequestUUID(Some(orgId),_) =>
-            GestaltOrg.validateToken(orgId = orgId, token = OpaqueToken(UUID.fromString(creds.token), ACCESS_TOKEN) ) map {
+            GestaltOrg.validateToken(orgId = orgId, token = OpaqueToken(UUID.fromString(creds.token), ACCESS_TOKEN) )(client) map {
               _ match {
                 case INVALID_TOKEN => None
                 case valid: ValidTokenResponse => Some(GestaltAuthResponse(
@@ -38,7 +38,7 @@ class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends Gestal
               }
             }
           case OrgContextRequest(Some(fqon),_) =>
-            GestaltOrg.validateToken(orgFQON = fqon, token = OpaqueToken(UUID.fromString(creds.token), ACCESS_TOKEN) ) map {
+            GestaltOrg.validateToken(orgFQON = fqon, token = OpaqueToken(UUID.fromString(creds.token), ACCESS_TOKEN) )(client) map {
               _ match {
                 case INVALID_TOKEN => None
                 case valid: ValidTokenResponse => Some(GestaltAuthResponse(
