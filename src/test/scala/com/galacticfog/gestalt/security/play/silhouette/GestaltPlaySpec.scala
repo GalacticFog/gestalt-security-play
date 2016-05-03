@@ -2,10 +2,12 @@ package com.galacticfog.gestalt.security.play.silhouette
 
 import java.util.UUID
 
+import com.galacticfog.gestalt.security.api.GestaltToken.ACCESS_TOKEN
 import com.galacticfog.gestalt.security.api._
 import com.mohiva.play.silhouette.api.services.AuthenticatorService
 import com.mohiva.play.silhouette.impl.authenticators.{DummyAuthenticatorService, DummyAuthenticator}
 import mockws.MockWS
+import org.joda.time.DateTime
 import org.specs2.mock.Mockito
 import org.specs2.mutable._
 import org.specs2.runner._
@@ -137,8 +139,9 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
   "GestaltFrameworkAuthProvider" should {
 
     import com.galacticfog.gestalt.security.api.json.JsonImports.authFormat
+    import com.galacticfog.gestalt.security.api.json.JsonImports.tokenIntrospectionResponse
 
-    "authenticate using basic auth" in {
+    "not authenticate using basic auth anymore" in {
       val securityHostname = "security.local"
       val securityPort = 9455
       val url = s"http://${securityHostname}:${securityPort}/auth"
@@ -163,16 +166,15 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       val ocRequest = OrgContextRequest(Some("root"),request)
       val frameworkProvider = new GestaltFrameworkAuthProvider(client)
       val resp = await(frameworkProvider.gestaltAuthImpl(ocRequest))
-      resp must beSome(authResponse)
+      resp must beNone
     }
 
     "authenticate using remote validated tokens" in {
       val securityHostname = "security.local"
       val securityPort = 9455
-      val url = s"http://${securityHostname}:${securityPort}/auth"
-      val token = UUID.randomUUID().toString
-      val apiKey = "nokey"
-      val apiSecret = "nosecret"
+      val url = s"http://${securityHostname}:${securityPort}/root/oauth/inspect"
+      val token = OpaqueToken(UUID.randomUUID(), ACCESS_TOKEN)
+      val NOT_USED = "nokey"
       val authResponse = GestaltAuthResponse(
         account = GestaltAccount(UUID.randomUUID(), "username", "", "", "", "", GestaltDirectory(
           UUID.randomUUID(), "name", "", UUID.randomUUID()
@@ -181,11 +183,24 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
         rights = Seq(),
         orgId = UUID.randomUUID()
       )
+      val introspectionResponse = ValidTokenResponse(
+        username = "username",
+        sub = authResponse.account.href,
+        iss = "",
+        exp = DateTime.now().getMillis / 1000,
+        iat = DateTime.now().getMillis / 1000,
+        jti = token.id,
+        gestalt_account = authResponse.account,
+        gestalt_token_href = s"/tokens/${token.id.toString}",
+        gestalt_rights = authResponse.rights,
+        gestalt_groups = authResponse.groups,
+        gestalt_org_id = authResponse.orgId
+      )
       val ws = MockWS {
-        case (POST,url) => Action { implicit request => Ok(Json.toJson(authResponse))}
+        case (POST,url) => Action { implicit request => Ok(Json.toJson(introspectionResponse))}
       }
-      val client = GestaltSecurityClient(ws, HTTP, securityHostname, securityPort, apiKey, apiSecret)
-      val creds = GestaltBearerCredentials(token)
+      val client = GestaltSecurityClient(ws, HTTP, securityHostname, securityPort, NOT_USED, NOT_USED)
+      val creds = GestaltBearerCredentials(token.toString)
       val request = FakeRequest("GET", "securedEndpoint", FakeHeaders(
         Seq(AUTHORIZATION -> Seq("Bearer " + creds.headerValue))
       ), AnyContentAsEmpty)
@@ -193,6 +208,67 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       val frameworkProvider = new GestaltFrameworkAuthProvider(client)
       val resp = await(frameworkProvider.gestaltAuthImpl(ocRequest))
       resp must beSome(authResponse)
+    }
+
+    "authenticate using remote validated tokens with dcos syntax" in {
+      val securityHostname = "security.local"
+      val securityPort = 9455
+      val url = s"http://${securityHostname}:${securityPort}/root/oauth/inspect"
+      val token = OpaqueToken(UUID.randomUUID(), ACCESS_TOKEN)
+      val NOT_USED = "nokey"
+      val authResponse = GestaltAuthResponse(
+        account = GestaltAccount(UUID.randomUUID(), "username", "", "", "", "", GestaltDirectory(
+          UUID.randomUUID(), "name", "", UUID.randomUUID()
+        )),
+        groups = Seq(),
+        rights = Seq(),
+        orgId = UUID.randomUUID()
+      )
+      val introspectionResponse = ValidTokenResponse(
+        username = "username",
+        sub = authResponse.account.href,
+        iss = "",
+        exp = DateTime.now().getMillis / 1000,
+        iat = DateTime.now().getMillis / 1000,
+        jti = token.id,
+        gestalt_account = authResponse.account,
+        gestalt_token_href = s"/tokens/${token.id.toString}",
+        gestalt_rights = authResponse.rights,
+        gestalt_groups = authResponse.groups,
+        gestalt_org_id = authResponse.orgId
+      )
+      val ws = MockWS {
+        case (POST,url) => Action { implicit request => Ok(Json.toJson(introspectionResponse)) }
+      }
+      val client = GestaltSecurityClient(ws, HTTP, securityHostname, securityPort, NOT_USED, NOT_USED)
+      val creds = GestaltBearerCredentials(token.toString)
+      val request = FakeRequest("GET", "securedEndpoint", FakeHeaders(
+        Seq(AUTHORIZATION -> Seq(s"token=${token.id}"))
+      ), AnyContentAsEmpty)
+      val ocRequest = OrgContextRequest(Some("root"),request)
+      val frameworkProvider = new GestaltFrameworkAuthProvider(client)
+      val resp = await(frameworkProvider.gestaltAuthImpl(ocRequest))
+      resp must beSome(authResponse)
+    }
+
+    "fail on invalid remote token validation" in {
+      val securityHostname = "security.local"
+      val securityPort = 9455
+      val url = s"http://${securityHostname}:${securityPort}/root/oauth/inspect"
+      val token = OpaqueToken(UUID.randomUUID(), ACCESS_TOKEN)
+      val NOT_USED = "nokey"
+      val ws = MockWS {
+        case (POST,url) => Action { implicit request => Ok(Json.toJson(INVALID_TOKEN))}
+      }
+      val client = GestaltSecurityClient(ws, HTTP, securityHostname, securityPort, NOT_USED, NOT_USED)
+      val creds = GestaltBearerCredentials(token.toString)
+      val request = FakeRequest("GET", "securedEndpoint", FakeHeaders(
+        Seq(AUTHORIZATION -> Seq("Bearer " + creds.headerValue))
+      ), AnyContentAsEmpty)
+      val ocRequest = OrgContextRequest(Some("root"),request)
+      val frameworkProvider = new GestaltFrameworkAuthProvider(client)
+      val resp = await(frameworkProvider.gestaltAuthImpl(ocRequest))
+      resp must beNone
     }
 
   }

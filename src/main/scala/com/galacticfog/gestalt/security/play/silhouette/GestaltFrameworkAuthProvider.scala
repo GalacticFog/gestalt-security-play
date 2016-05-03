@@ -23,17 +23,17 @@ class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends Gestal
 
     request.headers.get(HeaderNames.AUTHORIZATION) flatMap GestaltAPICredentials.getCredentials match {
       case Some(creds: GestaltBearerCredentials) =>
-        Logger.info("found Bearer creds; cannot use these yet")
+        Logger.info("found Bearer creds; will validate against gestalt-security")
         request match {
           case OrgContextRequestUUID(Some(orgId),_) =>
             GestaltOrg.validateToken(orgId = orgId, token = OpaqueToken(UUID.fromString(creds.token), ACCESS_TOKEN) )(client) map {
               _ match {
                 case INVALID_TOKEN => None
                 case valid: ValidTokenResponse => Some(GestaltAuthResponse(
-                  account = ???,
-                  groups =  ???,
+                  account = valid.gestalt_account,
                   rights = valid.gestalt_rights,
-                  orgId = orgId
+                  groups = valid.gestalt_groups,
+                  orgId = valid.gestalt_org_id
                 ))
               }
             }
@@ -42,10 +42,10 @@ class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends Gestal
               _ match {
                 case INVALID_TOKEN => None
                 case valid: ValidTokenResponse => Some(GestaltAuthResponse(
-                  account = ???,
-                  groups =  ???,
+                  account = valid.gestalt_account,
                   rights = valid.gestalt_rights,
-                  orgId = ???
+                  groups = valid.gestalt_groups,
+                  orgId = valid.gestalt_org_id
                 ))
               }
             }
@@ -54,30 +54,8 @@ class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends Gestal
             Future.successful(None)
         }
       case Some(creds: GestaltBasicCredentials) =>
-        Logger.info("found Basic creds")
-        request match {
-          case OrgContextRequestUUID(Some(orgId),_) =>
-            GestaltOrg.authorizeFrameworkUser(orgId = orgId, creds)(client) map {
-              _.map { success => new GestaltAuthResponseWithCreds(success.account, success.groups, success.rights, success.orgId, creds) }
-            }
-          case OrgContextRequest(Some(fqon),_) =>
-            GestaltOrg.authorizeFrameworkUser(orgFQON = fqon.trim, creds)(client) map {
-              _.map { success => new GestaltAuthResponseWithCreds(success.account, success.groups, success.rights, success.orgId, creds) }
-            }
-          case _ =>
-            creds.username match {
-              case usernameAndDomain(username,domain) =>
-                // got org from credentials; strip the org from the username
-                GestaltOrg.authorizeFrameworkUser(domain, creds.copy(username = username))(client) map {
-                  _.map { success => new GestaltAuthResponseWithCreds(success.account, success.groups, success.rights, success.orgId, creds) }
-                }
-              case _ =>
-                // try without the org; valid API credentials will still succeed
-                GestaltOrg.authorizeFrameworkUser(creds)(client) map {
-                  _.map { success => new GestaltAuthResponseWithCreds(success.account, success.groups, success.rights, success.orgId, creds) }
-                }
-            }
-        }
+        Logger.info("authentication via Basic credentials not supported anymore")
+        Future.successful(None)
       case None =>
         Logger.info("did not find credentials in request Authorization header")
         Future.successful(None)
