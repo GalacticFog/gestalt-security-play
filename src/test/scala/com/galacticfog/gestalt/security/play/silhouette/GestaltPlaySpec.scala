@@ -161,7 +161,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       val client = GestaltSecurityClient(ws, HTTP, securityHostname, securityPort, apiKey, apiSecret)
       val creds = GestaltBasicCredentials("root", "letmein")
       val request = FakeRequest("GET", "securedEndpoint", FakeHeaders(
-        Seq(AUTHORIZATION -> Seq("Basic " + creds.headerValue))
+        Seq(AUTHORIZATION -> Seq(creds.headerValue))
       ), AnyContentAsEmpty)
       val ocRequest = OrgContextRequest(Some("root"),request)
       val frameworkProvider = new GestaltFrameworkAuthProvider(client)
@@ -202,7 +202,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       val client = GestaltSecurityClient(ws, HTTP, securityHostname, securityPort, NOT_USED, NOT_USED)
       val creds = GestaltBearerCredentials(token.toString)
       val request = FakeRequest("GET", "securedEndpoint", FakeHeaders(
-        Seq(AUTHORIZATION -> Seq("Bearer " + creds.headerValue))
+        Seq(AUTHORIZATION -> Seq(creds.headerValue))
       ), AnyContentAsEmpty)
       val ocRequest = OrgContextRequest(Some("root"),request)
       val frameworkProvider = new GestaltFrameworkAuthProvider(client)
@@ -263,7 +263,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       val client = GestaltSecurityClient(ws, HTTP, securityHostname, securityPort, NOT_USED, NOT_USED)
       val creds = GestaltBearerCredentials(token.toString)
       val request = FakeRequest("GET", "securedEndpoint", FakeHeaders(
-        Seq(AUTHORIZATION -> Seq("Bearer " + creds.headerValue))
+        Seq(AUTHORIZATION -> Seq(creds.headerValue))
       ), AnyContentAsEmpty)
       val ocRequest = OrgContextRequest(Some("root"),request)
       val frameworkProvider = new GestaltFrameworkAuthProvider(client)
