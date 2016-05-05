@@ -34,11 +34,12 @@ class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends Gestal
         fIntroResp map {
           _ match {
             case INVALID_TOKEN => None
-            case valid: ValidTokenResponse => Some(GestaltAuthResponse(
+            case valid: ValidTokenResponse => Some(new GestaltAuthResponseWithCreds(
               account = valid.gestalt_account,
               rights = valid.gestalt_rights,
               groups = valid.gestalt_groups,
-              orgId = valid.gestalt_org_id
+              orgId = valid.gestalt_org_id,
+              creds = creds
             ))
           }
         }

@@ -208,6 +208,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       val frameworkProvider = new GestaltFrameworkAuthProvider(client)
       val resp = await(frameworkProvider.gestaltAuthImpl(ocRequest))
       resp must beSome(authResponse)
+      resp.get must beAnInstanceOf[GestaltAuthResponseWithCreds]
     }
 
     "authenticate using remote validated tokens with dcos syntax" in {
