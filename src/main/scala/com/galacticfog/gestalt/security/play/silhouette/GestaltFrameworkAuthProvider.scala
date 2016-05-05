@@ -20,41 +20,30 @@ class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends Gestal
   override def id: String = GestaltFrameworkAuthProvider.ID
 
   override def gestaltAuthImpl[B](request: Request[B]): Future[Option[GestaltAuthResponse]] = {
-
     request.headers.get(HeaderNames.AUTHORIZATION) flatMap GestaltAPICredentials.getCredentials match {
       case Some(creds: GestaltBearerCredentials) =>
-        Logger.info("found Bearer creds; will validate against gestalt-security")
-        request match {
+        Logger.info("found Bearer credentials; will validate against gestalt-security")
+        val fIntroResp = request match {
           case OrgContextRequestUUID(Some(orgId),_) =>
-            GestaltOrg.validateToken(orgId = orgId, token = OpaqueToken(UUID.fromString(creds.token), ACCESS_TOKEN) )(client) map {
-              _ match {
-                case INVALID_TOKEN => None
-                case valid: ValidTokenResponse => Some(GestaltAuthResponse(
-                  account = valid.gestalt_account,
-                  rights = valid.gestalt_rights,
-                  groups = valid.gestalt_groups,
-                  orgId = valid.gestalt_org_id
-                ))
-              }
-            }
+            GestaltOrg.validateToken(orgId = orgId, token = OpaqueToken(UUID.fromString(creds.token), ACCESS_TOKEN) )(client)
           case OrgContextRequest(Some(fqon),_) =>
-            GestaltOrg.validateToken(orgFQON = fqon, token = OpaqueToken(UUID.fromString(creds.token), ACCESS_TOKEN) )(client) map {
-              _ match {
-                case INVALID_TOKEN => None
-                case valid: ValidTokenResponse => Some(GestaltAuthResponse(
-                  account = valid.gestalt_account,
-                  rights = valid.gestalt_rights,
-                  groups = valid.gestalt_groups,
-                  orgId = valid.gestalt_org_id
-                ))
-              }
-            }
+            GestaltOrg.validateToken(orgFQON = fqon, token = OpaqueToken(UUID.fromString(creds.token), ACCESS_TOKEN) )(client)
           case _ =>
-            Logger.info("Token authentication currently only valid against specified orgs")
-            Future.successful(None)
+            GestaltOrg.validateToken(token = OpaqueToken(UUID.fromString(creds.token), ACCESS_TOKEN) )(client)
+        }
+        fIntroResp map {
+          _ match {
+            case INVALID_TOKEN => None
+            case valid: ValidTokenResponse => Some(GestaltAuthResponse(
+              account = valid.gestalt_account,
+              rights = valid.gestalt_rights,
+              groups = valid.gestalt_groups,
+              orgId = valid.gestalt_org_id
+            ))
+          }
         }
       case Some(creds: GestaltBasicCredentials) =>
-        Logger.info("authentication via Basic credentials not supported anymore")
+        Logger.info("authentication via Basic credentials no longer supported")
         Future.successful(None)
       case None =>
         Logger.info("did not find credentials in request Authorization header")
