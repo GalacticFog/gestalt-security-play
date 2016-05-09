@@ -8,6 +8,8 @@ import com.mohiva.play.silhouette.api.services.AuthenticatorService
 import com.mohiva.play.silhouette.impl.authenticators.{DummyAuthenticatorService, DummyAuthenticator}
 import mockws.MockWS
 import org.joda.time.DateTime
+import org.specs2.execute
+import org.specs2.matcher.ValueCheck
 import org.specs2.mock.Mockito
 import org.specs2.mutable._
 import org.specs2.runner._
@@ -15,6 +17,7 @@ import org.junit.runner._
 import play.api.libs.json.Json
 import play.api.mvc.RequestHeader
 import play.api.test.{FakeHeaders, FakeRequest, WithApplication}
+import play.mvc.Http.HeaderNames
 import scala.concurrent.Future
 import play.api.mvc._
 import play.api.mvc.Action
@@ -68,6 +71,10 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       // how about a UUID? we got that covered! this authenticates against /orgs/:orgId/auth
       def aUUID(orgId: UUID) = GestaltFrameworkAuthAction(Some(orgId)).async(parse.json) {
         securedRequest => Future{Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds)}
+      }
+
+      def hello() = GestaltFrameworkAuthAction(Option.empty[String]) { securedRequest =>
+        Ok("hello")
       }
 
       // how about some authenticated methods with a credential-passthrough call to security?
@@ -132,6 +139,14 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       controller.securityConfig.apiKey     must_== testConfig.apiKey
       controller.securityConfig.apiSecret  must_== testConfig.apiSecret
       controller.securityConfig.appId      must_== testConfig.appId
+    }
+
+    "return WWW-Authenticate header on 401" in new WithApplication {
+      val controller = new TestFrameworkControllerSecurity()
+      val realm = s"${controller.securityClient.protocol}://${controller.securityClient.hostname}:${controller.securityClient.port}"
+      val result = await(controller.hello().apply(FakeRequest()))
+      result.header.status must_== 401
+      result.header.headers.get(HeaderNames.WWW_AUTHENTICATE) must beSome("Bearer realm=\"" + realm + "\"")
     }
 
   }

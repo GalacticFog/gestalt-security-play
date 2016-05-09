@@ -26,7 +26,7 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends S
         Future.successful(HandlerResult(Ok, Some(securedRequest)))
       }.flatMap {
         case HandlerResult(r, Some(sr)) => block(sr)
-        case HandlerResult(r, None) => Future.successful(Unauthorized)
+        case HandlerResult(r, None) => Future.successful(notAuthenticated)
       }
     }
   }
@@ -38,7 +38,7 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends S
         Future.successful(HandlerResult(Ok, Some(securedRequest)))
       }.flatMap {
         case HandlerResult(r, Some(sr)) => block(sr)
-        case HandlerResult(r, None) => Future.successful(Unauthorized)
+        case HandlerResult(r, None) => Future.successful(notAuthenticated)
       }
     }
   }
@@ -89,6 +89,13 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends S
     override def authenticatorService: AuthenticatorService[A] = getAuthenticator
     override def providers: Map[String, Provider] = Map(authProvider.id -> authProvider)
     override def eventBus: EventBus = EventBus()
+  }
+
+  protected val notAuthenticated: Result = {
+    val realm: String = s"${securityConfig.protocol}://${securityConfig.hostname}:${securityConfig.port}"
+    val challenge: String = "Bearer realm=\"" + realm + "\""
+    Logger.info("returning with header")
+    Unauthorized("Authentication required").withHeaders(WWW_AUTHENTICATE -> challenge)
   }
 
 }
