@@ -26,7 +26,12 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends S
         Future.successful(HandlerResult(Ok, Some(securedRequest)))
       }.flatMap {
         case HandlerResult(r, Some(sr)) => block(sr)
-        case HandlerResult(r, None) => Future.successful(notAuthenticated)
+        case HandlerResult(r, None) => Future{
+          val org = ocr.orgFQON getOrElse "root"
+          val realm: String = s"${securityConfig.protocol}://${securityConfig.hostname}:${securityConfig.port}/${org}/oauth/issue"
+          val challenge: String = "Bearer realm=\"" + realm + "\""
+          Unauthorized("Authentication required").withHeaders(WWW_AUTHENTICATE -> challenge)
+        }
       }
     }
   }
@@ -38,7 +43,12 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends S
         Future.successful(HandlerResult(Ok, Some(securedRequest)))
       }.flatMap {
         case HandlerResult(r, Some(sr)) => block(sr)
-        case HandlerResult(r, None) => Future.successful(notAuthenticated)
+        case HandlerResult(r, None) => Future{
+          val org = ocr.orgId map {orgId => s"orgs/${orgId}"} getOrElse "root"
+          val realm: String = s"${securityConfig.protocol}://${securityConfig.hostname}:${securityConfig.port}/${org}/oauth/issue"
+          val challenge: String = "Bearer realm=\"" + realm + "\""
+          Unauthorized("Authentication required").withHeaders(WWW_AUTHENTICATE -> challenge)
+        }
       }
     }
   }
@@ -94,7 +104,6 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends S
   protected val notAuthenticated: Result = {
     val realm: String = s"${securityConfig.protocol}://${securityConfig.hostname}:${securityConfig.port}"
     val challenge: String = "Bearer realm=\"" + realm + "\""
-    Logger.info("returning with header")
     Unauthorized("Authentication required").withHeaders(WWW_AUTHENTICATE -> challenge)
   }
 

@@ -69,7 +69,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       }
 
       // how about a UUID? we got that covered! this authenticates against /orgs/:orgId/auth
-      def aUUID(orgId: UUID) = GestaltFrameworkAuthAction(Some(orgId)).async(parse.json) {
+      def aUUID(orgId: UUID) = GestaltFrameworkAuthAction(Some(orgId)).async {
         securedRequest => Future{Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds)}
       }
 
@@ -141,10 +141,28 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       controller.securityConfig.appId      must_== testConfig.appId
     }
 
-    "return WWW-Authenticate header on 401" in new WithApplication {
+    "return WWW-Authenticate header on 401 (root)" in new WithApplication {
       val controller = new TestFrameworkControllerSecurity()
-      val realm = s"${controller.securityClient.protocol}://${controller.securityClient.hostname}:${controller.securityClient.port}"
+      val realm = s"${controller.securityClient.protocol}://${controller.securityClient.hostname}:${controller.securityClient.port}/root/oauth/issue"
       val result = await(controller.hello().apply(FakeRequest()))
+      result.header.status must_== 401
+      result.header.headers.get(HeaderNames.WWW_AUTHENTICATE) must beSome("Bearer realm=\"" + realm + "\"")
+    }
+
+    "return WWW-Authenticate header on 401 (FQON)" in new WithApplication {
+      val controller = new TestFrameworkControllerSecurity()
+      val fqon = "galacticfog"
+      val realm = s"${controller.securityClient.protocol}://${controller.securityClient.hostname}:${controller.securityClient.port}/$fqon/oauth/issue"
+      val result = await(controller.fromArgs(fqon).apply(FakeRequest()))
+      result.header.status must_== 401
+      result.header.headers.get(HeaderNames.WWW_AUTHENTICATE) must beSome("Bearer realm=\"" + realm + "\"")
+    }
+
+    "return WWW-Authenticate header on 401 (UUID)" in new WithApplication {
+      val controller = new TestFrameworkControllerSecurity()
+      val orgId = UUID.randomUUID()
+      val realm = s"${controller.securityClient.protocol}://${controller.securityClient.hostname}:${controller.securityClient.port}/orgs/$orgId/oauth/issue"
+      val result = await(controller.aUUID(orgId).apply(FakeRequest()))
       result.header.status must_== 401
       result.header.headers.get(HeaderNames.WWW_AUTHENTICATE) must beSome("Bearer realm=\"" + realm + "\"")
     }
@@ -267,7 +285,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       resp must beSome(authResponse)
     }
 
-    "fail on invalid remote token validation" in {
+    "fail on inactive remote token validation" in {
       val securityHostname = "security.local"
       val securityPort = 9455
       val url = s"http://${securityHostname}:${securityPort}/root/oauth/inspect"
@@ -278,6 +296,24 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       }
       val client = GestaltSecurityClient(ws, HTTP, securityHostname, securityPort, NOT_USED, NOT_USED)
       val creds = GestaltBearerCredentials(token.toString)
+      val request = FakeRequest("GET", "securedEndpoint", FakeHeaders(
+        Seq(AUTHORIZATION -> Seq(creds.headerValue))
+      ), AnyContentAsEmpty)
+      val ocRequest = OrgContextRequest(Some("root"),request)
+      val frameworkProvider = new GestaltFrameworkAuthProvider(client)
+      val resp = await(frameworkProvider.gestaltAuthImpl(ocRequest))
+      resp must beNone
+    }
+
+    "fail on unparsable token" in {
+      val securityHostname = "security.local"
+      val securityPort = 9455
+      val NOT_USED = "nokey"
+      val ws = MockWS {
+        case (_,_) => Action { BadRequest("shouldn't get this far") }
+      }
+      val client = GestaltSecurityClient(ws, HTTP, securityHostname, securityPort, NOT_USED, NOT_USED)
+      val creds = GestaltBearerCredentials("not-a-valid-token")
       val request = FakeRequest("GET", "securedEndpoint", FakeHeaders(
         Seq(AUTHORIZATION -> Seq(creds.headerValue))
       ), AnyContentAsEmpty)
