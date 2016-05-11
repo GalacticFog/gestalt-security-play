@@ -27,7 +27,7 @@ class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends Gestal
         Logger.info("found Bearer credentials; will validate against gestalt-security")
         val fIntroResp = Try{UUID.fromString(creds.token)} match {
           case Failure(err) =>
-            Logger.info("error parsing token ID",err)
+            Logger.info("error parsing token ID: " + err.getMessage)
             Future.successful(INVALID_TOKEN)
           case Success(tokenId) =>
             val token = OpaqueToken(tokenId, ACCESS_TOKEN)
