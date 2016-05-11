@@ -3,9 +3,12 @@ package com.galacticfog.gestalt.security.play.silhouette
 import java.util.UUID
 
 import com.galacticfog.gestalt.security.api._
+import com.galacticfog.gestalt.security.api.errors.UnauthorizedAPIException
+import com.galacticfog.gestalt.security.api.json.JsonImports.exceptionFormat
 import com.mohiva.play.silhouette.api.services.{AuthenticatorService, IdentityService}
 import com.mohiva.play.silhouette.api._
 import play.api.Logger
+import play.api.libs.json.Json
 import play.api.mvc._
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.Play.current
@@ -30,7 +33,7 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends S
           val org = ocr.orgFQON getOrElse "root"
           val realm: String = s"${securityConfig.protocol}://${securityConfig.hostname}:${securityConfig.port}/${org}/oauth/issue"
           val challenge: String = "Bearer realm=\"" + realm + "\""
-          Unauthorized("Authentication required").withHeaders(WWW_AUTHENTICATE -> challenge)
+          Unauthorized(Json.toJson(UnauthorizedAPIException("","Authentication required",""))).withHeaders(WWW_AUTHENTICATE -> challenge)
         }
       }
     }
@@ -47,7 +50,7 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends S
           val org = ocr.orgId map {orgId => s"orgs/${orgId}"} getOrElse "root"
           val realm: String = s"${securityConfig.protocol}://${securityConfig.hostname}:${securityConfig.port}/${org}/oauth/issue"
           val challenge: String = "Bearer realm=\"" + realm + "\""
-          Unauthorized("Authentication required").withHeaders(WWW_AUTHENTICATE -> challenge)
+          Unauthorized(Json.toJson(UnauthorizedAPIException("","Authentication required",""))).withHeaders(WWW_AUTHENTICATE -> challenge)
         }
       }
     }
