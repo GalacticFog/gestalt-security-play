@@ -21,7 +21,7 @@ class GrantSpecs extends Specification with Mockito with Tables {
   implicit val lang = mock[Lang]
 
   def makeAuth(rights: Seq[GestaltRightGrant]) = AuthAccount(
-    account = GestaltAccount(id = UUID.randomUUID, username = "john", "John", "Doe", "jdoe@gmail.com", phoneNumber = "", directory = GestaltDirectory(id = UUID.randomUUID(), "", "", UUID.randomUUID())),
+    account = GestaltAccount(id = UUID.randomUUID, username = "john", "John", "Doe", description = None, "jdoe@gmail.com", phoneNumber = "", directory = GestaltDirectory(id = UUID.randomUUID(), "", None, UUID.randomUUID())),
     groups = Seq(),
     rights = rights
   )
