@@ -2,7 +2,7 @@ name := """gestalt-security-play"""
 
 organization := "com.galacticfog"
 
-version := "2.1.0-SNAPSHOT"
+version := "2.1.1-SNAPSHOT"
 
 scalaVersion := "2.11.6"
 
@@ -35,7 +35,7 @@ resolvers ++= {
 shellPrompt in ThisBuild := { state => "\033[0;36m" + Project.extract(state).currentRef.project + "\033[0m] " }
 
 libraryDependencies ++= Seq(
-  "com.galacticfog" %% "gestalt-security-sdk-scala" % "2.1.0-SNAPSHOT" withSources()
+  "com.galacticfog" %% "gestalt-security-sdk-scala" % "2.1.1-SNAPSHOT" withSources()
 )
 
 // MockWS for testing

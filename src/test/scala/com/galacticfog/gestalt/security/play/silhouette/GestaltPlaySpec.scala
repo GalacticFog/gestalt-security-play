@@ -82,7 +82,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
         securedRequest =>
           val account = securedRequest.identity.account
           val creds = securedRequest.identity.creds
-          GestaltOrg.createSubOrg(parentOrgId = parentOrgId, name = "someNewOrgName", creds) map {
+          GestaltOrg.createSubOrg(parentOrgId = parentOrgId, GestaltOrgCreate("someNewOrgName"))(securityClient.withCreds(creds)) map {
             // do what you were going to do
             newOrg => Created(Json.obj(
               "newAccountId" -> newOrg.id,
@@ -95,7 +95,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
         securedRequest =>
           val account = securedRequest.identity.account
           val creds = securedRequest.identity.creds
-          GestaltOrg.deleteOrg(orgId = orgId, creds) map {
+          GestaltOrg.deleteOrg(orgId)(securityClient.withCreds(creds)) map {
               // do what you were going to do
             newOrg => Ok(Json.obj(
               "deletedOrgId" -> orgId,
@@ -118,7 +118,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
             credential = GestaltPasswordCredential("bob's password"),
             groups = Some(Seq(someExistingGroupId)),
             rights = Some(Seq(GestaltGrantCreate("freedom")))
-          ), creds) map {
+          ))(securityClient.withCreds(creds)) map {
               // do what you were going to do
             newOrg => Created(Json.obj(
               "newAccountId" -> newOrg.id,
@@ -181,8 +181,8 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       val apiKey = "nokey"
       val apiSecret = "nosecret"
       val authResponse = GestaltAuthResponse(
-        account = GestaltAccount(UUID.randomUUID(), "username", "", "", "", "", GestaltDirectory(
-          UUID.randomUUID(), "name", "", UUID.randomUUID()
+        account = GestaltAccount(UUID.randomUUID(), "username", "", "", None, "", "", GestaltDirectory(
+          UUID.randomUUID(), "name", None, UUID.randomUUID()
         )),
         groups = Seq(),
         rights = Seq(),
@@ -209,8 +209,8 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       val token = OpaqueToken(UUID.randomUUID(), ACCESS_TOKEN)
       val NOT_USED = "nokey"
       val authResponse = GestaltAuthResponse(
-        account = GestaltAccount(UUID.randomUUID(), "username", "", "", "", "", GestaltDirectory(
-          UUID.randomUUID(), "name", "", UUID.randomUUID()
+        account = GestaltAccount(UUID.randomUUID(), "username", "", "", None, "", "", GestaltDirectory(
+          UUID.randomUUID(), "name", None, UUID.randomUUID()
         )),
         groups = Seq(),
         rights = Seq(),
@@ -251,8 +251,8 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       val token = OpaqueToken(UUID.randomUUID(), ACCESS_TOKEN)
       val NOT_USED = "nokey"
       val authResponse = GestaltAuthResponse(
-        account = GestaltAccount(UUID.randomUUID(), "username", "", "", "", "", GestaltDirectory(
-          UUID.randomUUID(), "name", "", UUID.randomUUID()
+        account = GestaltAccount(UUID.randomUUID(), "username", "", "", None, "", "", GestaltDirectory(
+          UUID.randomUUID(), "name", None, UUID.randomUUID()
         )),
         groups = Seq(),
         rights = Seq(),
