@@ -10,7 +10,7 @@ import play.api.Logger
 import play.api.Play.current
 import play.api.libs.concurrent.Execution.Implicits._
 
-case class AuthAccount(account: GestaltAccount, groups: Seq[GestaltGroup], rights: Seq[GestaltRightGrant]) extends Identity
+case class AuthAccount(account: GestaltAccount, groups: Seq[ResourceLink], rights: Seq[GestaltRightGrant]) extends Identity
 
 class GestaltSecuredController() extends Silhouette[AuthAccount, DummyAuthenticator] {
 
@@ -19,8 +19,8 @@ class GestaltSecuredController() extends Silhouette[AuthAccount, DummyAuthentica
     protocol = HTTP,
     hostname = "localhost",
     port = 9455,
-    apiKey = Some("00000noAPIKey00000000000"),
-    apiSecret = Some("00000noAPISecret00000000"),
+    apiKey = UUID.randomUUID().toString,
+    apiSecret = "00000noAPISecret00000000",
     appId = Some(UUID.randomUUID())
   )
 

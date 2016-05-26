@@ -33,8 +33,8 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
     protocol = HTTP,
     hostname = "test.host.com",
     port = 1234,
-    apiKey = Some("someKey"),
-    apiSecret = Some("someSecret"),
+    apiKey = "someKey",
+    apiSecret = "someSecret",
     appId = Some(UUID.randomUUID)
   )
 
@@ -113,8 +113,8 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
             username = "bsmith",
             firstName = "bob",
             lastName = "smith",
-            email = "bsmith@myorg",
-            phoneNumber = "505-867-5309",
+            email = Some("bsmith@myorg"),
+            phoneNumber = Some("505-867-5309"),
             credential = GestaltPasswordCredential("bob's password"),
             groups = Some(Seq(someExistingGroupId)),
             rights = Some(Seq(GestaltGrantCreate("freedom")))
@@ -181,7 +181,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       val apiKey = "nokey"
       val apiSecret = "nosecret"
       val authResponse = GestaltAuthResponse(
-        account = GestaltAccount(UUID.randomUUID(), "username", "", "", None, "", "", GestaltDirectory(
+        account = GestaltAccount(UUID.randomUUID(), "username", "", "", None, None, None, GestaltDirectory(
           UUID.randomUUID(), "name", None, UUID.randomUUID()
         )),
         groups = Seq(),
@@ -209,7 +209,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       val token = OpaqueToken(UUID.randomUUID(), ACCESS_TOKEN)
       val NOT_USED = "nokey"
       val authResponse = GestaltAuthResponse(
-        account = GestaltAccount(UUID.randomUUID(), "username", "", "", None, "", "", GestaltDirectory(
+        account = GestaltAccount(UUID.randomUUID(), "username", "", "", None, None, None, GestaltDirectory(
           UUID.randomUUID(), "name", None, UUID.randomUUID()
         )),
         groups = Seq(),
@@ -251,7 +251,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       val token = OpaqueToken(UUID.randomUUID(), ACCESS_TOKEN)
       val NOT_USED = "nokey"
       val authResponse = GestaltAuthResponse(
-        account = GestaltAccount(UUID.randomUUID(), "username", "", "", None, "", "", GestaltDirectory(
+        account = GestaltAccount(UUID.randomUUID(), "username", "", "", None, None, None, GestaltDirectory(
           UUID.randomUUID(), "name", None, UUID.randomUUID()
         )),
         groups = Seq(),
