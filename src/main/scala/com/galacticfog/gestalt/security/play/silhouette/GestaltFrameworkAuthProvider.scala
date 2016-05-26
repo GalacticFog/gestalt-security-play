@@ -13,7 +13,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 
 import scala.util.{Failure, Success, Try}
 
-class GestaltAuthResponseWithCreds(override val account: GestaltAccount, override val groups: Seq[GestaltGroup], override val rights: Seq[GestaltRightGrant], override val orgId: UUID, val creds: GestaltAPICredentials) extends GestaltAuthResponse(account, groups, rights, orgId)
+class GestaltAuthResponseWithCreds(override val account: GestaltAccount, override val groups: Seq[ResourceLink], override val rights: Seq[GestaltRightGrant], override val orgId: UUID, val creds: GestaltAPICredentials) extends GestaltAuthResponse(account, groups, rights, orgId)
 
 class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends GestaltBaseAuthProvider(client) {
 
@@ -32,9 +32,9 @@ class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends Gestal
           case Success(tokenId) =>
             val token = OpaqueToken(tokenId, ACCESS_TOKEN)
             request match {
-              case OrgContextRequestUUID(Some(orgId),_) => GestaltOrg.validateToken(orgId = orgId, token = token)(client)
-              case OrgContextRequest(Some(fqon),_) => GestaltOrg.validateToken(orgFQON = fqon, token = token)(client)
-              case _ => GestaltOrg.validateToken(token = token)(client)
+              case OrgContextRequestUUID(Some(orgId),_) => GestaltToken.validateToken(orgId = orgId, token = token)(client)
+              case OrgContextRequest(Some(fqon),_) => GestaltToken.validateToken(orgFQON = fqon, token = token)(client)
+              case _ => GestaltToken.validateToken(token = token)(client)
             }
         }
         fIntroResp map {

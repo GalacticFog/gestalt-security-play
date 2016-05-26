@@ -14,7 +14,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.Play.current
 import scala.concurrent.Future
 
-case class AuthAccountWithCreds(account: GestaltAccount, groups: Seq[GestaltGroup], rights: Seq[GestaltRightGrant], creds: GestaltAPICredentials, authenticatingOrgId: UUID) extends Identity
+case class AuthAccountWithCreds(account: GestaltAccount, groups: Seq[ResourceLink], rights: Seq[GestaltRightGrant], creds: GestaltAPICredentials, authenticatingOrgId: UUID) extends Identity
 case class OrgContextRequest[B](orgFQON: Option[String], request: Request[B]) extends WrappedRequest(request)
 case class OrgContextRequestUUID[B](orgId: Option[UUID], request: Request[B]) extends WrappedRequest(request)
 
@@ -68,8 +68,8 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends S
     protocol = HTTP,
     hostname = "localhost",
     port = 9455,
-    apiKey = None,
-    apiSecret = None,
+    apiKey = UUID.randomUUID().toString,
+    apiSecret = "00000noAPISecret00000000",
     appId = None
   )
 
