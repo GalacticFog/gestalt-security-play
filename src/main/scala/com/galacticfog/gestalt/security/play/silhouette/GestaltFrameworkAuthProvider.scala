@@ -50,8 +50,21 @@ class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends Gestal
           }
         }
       case Some(creds: GestaltBasicCredentials) =>
-        Logger.info("authentication via Basic credentials no longer supported")
-        Future.successful(None)
+        Logger.info("found Basic credentials; will validate against gestalt-security")
+        val authResponse = request match {
+          case OrgContextRequestUUID(Some(orgId),_) => GestaltOrg.authorizeFrameworkUser(orgId,creds)(client)
+          case OrgContextRequest(Some(fqon),_) => GestaltOrg.authorizeFrameworkUser(fqon,creds)(client)
+          case _ => GestaltOrg.authorizeFrameworkUser(creds)(client)
+        }
+        authResponse map {  _.map { ar =>
+          new GestaltAuthResponseWithCreds(
+            account = ar.account,
+            rights = ar.rights,
+            groups = ar.groups,
+            orgId = ar.orgId,
+            creds = creds
+          )
+        } }
       case None =>
         Logger.info("did not find credentials in request Authorization header")
         Future.successful(None)
