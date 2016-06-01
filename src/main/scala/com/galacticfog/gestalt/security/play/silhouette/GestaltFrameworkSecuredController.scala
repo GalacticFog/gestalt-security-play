@@ -82,7 +82,7 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends S
       if (config.mode == FRAMEWORK_SECURITY_MODE && config.isWellDefined) Some(config)
       else None
     ).getOrElse {
-      Logger.warn("Could not determine suitable GestaltSecurityConfig; relying on getFallbackSecurityConfig()")
+      Logger.warn("could not determine suitable GestaltSecurityConfig; relying on getFallbackSecurityConfig()")
       getFallbackSecurityConfig
     }
   } catch {
