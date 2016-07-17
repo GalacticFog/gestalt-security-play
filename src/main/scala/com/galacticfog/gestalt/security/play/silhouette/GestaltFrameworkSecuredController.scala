@@ -30,9 +30,10 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends S
       }.flatMap {
         case HandlerResult(r, Some(sr)) => block(sr)
         case HandlerResult(r, None) => Future{
-          val org = ocr.orgFQON getOrElse "root"
-          val realm: String = s"${securityConfig.protocol}://${securityConfig.hostname}:${securityConfig.port}/${org}/oauth/issue"
-          val challenge: String = "Bearer realm=\"" + realm + "\""
+          lazy val org = ocr.orgFQON getOrElse "root"
+          lazy val defRealm = s"${securityConfig.protocol}://${securityConfig.hostname}:${securityConfig.port}/${org}/oauth/issue"
+          val realm: String = securityRealmOverride getOrElse defRealm
+          val challenge: String = "Bearer realm=\"" + realm + "\" error=\"invalid_token\""
           Unauthorized(Json.toJson(UnauthorizedAPIException("","Authentication required",""))).withHeaders(WWW_AUTHENTICATE -> challenge)
         }
       }
@@ -47,9 +48,10 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends S
       }.flatMap {
         case HandlerResult(r, Some(sr)) => block(sr)
         case HandlerResult(r, None) => Future{
-          val org = ocr.orgId map {orgId => s"orgs/${orgId}"} getOrElse "root"
-          val realm: String = s"${securityConfig.protocol}://${securityConfig.hostname}:${securityConfig.port}/${org}/oauth/issue"
-          val challenge: String = "Bearer realm=\"" + realm + "\""
+          lazy val org = ocr.orgId map {orgId => s"orgs/${orgId}"} getOrElse "root"
+          lazy val defRealm = s"${securityConfig.protocol}://${securityConfig.hostname}:${securityConfig.port}/${org}/oauth/issue"
+          val realm: String = securityRealmOverride getOrElse defRealm
+          val challenge: String = "Bearer realm=\"" + realm + "\" error=\"invalid_token\""
           Unauthorized(Json.toJson(UnauthorizedAPIException("","Authentication required",""))).withHeaders(WWW_AUTHENTICATE -> challenge)
         }
       }
@@ -91,6 +93,8 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends S
       getFallbackSecurityConfig
   }
 
+  val securityRealmOverride = scala.util.Properties.envOrNone("GESTALT_SECURITY_REALM")
+
   Logger.info(s"bound security in framework mode to ${securityConfig.protocol}://${securityConfig.hostname}:${securityConfig.port}")
 
   implicit val securityClient: GestaltSecurityClient = GestaltSecurityClient(securityConfig)
@@ -102,12 +106,6 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends S
     override def authenticatorService: AuthenticatorService[A] = getAuthenticator
     override def providers: Map[String, Provider] = Map(authProvider.id -> authProvider)
     override def eventBus: EventBus = EventBus()
-  }
-
-  protected val notAuthenticated: Result = {
-    val realm: String = s"${securityConfig.protocol}://${securityConfig.hostname}:${securityConfig.port}"
-    val challenge: String = "Bearer realm=\"" + realm + "\""
-    Unauthorized("Authentication required").withHeaders(WWW_AUTHENTICATE -> challenge)
   }
 
 }
