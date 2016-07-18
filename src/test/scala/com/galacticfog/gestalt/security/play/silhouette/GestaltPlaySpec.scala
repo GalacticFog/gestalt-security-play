@@ -16,20 +16,19 @@ import org.specs2.runner._
 import org.junit.runner._
 import play.api.libs.json.Json
 import play.api.mvc.RequestHeader
-import play.api.test.{FakeHeaders, FakeRequest, WithApplication}
+import play.api.test._
 import play.mvc.Http.HeaderNames
 import scala.concurrent.Future
 import play.api.mvc._
 import play.api.mvc.Action
 import play.api.mvc.Results._
 import play.api.test.Helpers._
-import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 
 @RunWith(classOf[JUnitRunner])
 class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with DefaultAwaitTimeout {
 
   val testConfig = GestaltSecurityConfig(
-    mode = DELEGATED_SECURITY_MODE,
+    mode = FRAMEWORK_SECURITY_MODE,
     protocol = HTTP,
     hostname = "test.host.com",
     port = 1234,
@@ -40,12 +39,10 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
 
   "GestaltSecuredController" should {
 
-    class TestControllerWithConfigOverride(config: GestaltSecurityConfig) extends GestaltSecuredController {
-      override def getSecurityConfig: Option[GestaltSecurityConfig] = Some(config)
-    }
+    class TestController(config: Option[GestaltSecurityConfig] = None) extends GestaltFrameworkSecuredController[DummyAuthenticator] {
 
-    // TODO: need to add some tests of this, but compilation alone is a useful example
-    class TestFrameworkControllerSecurity extends GestaltFrameworkSecuredController[DummyAuthenticator] {
+      override def getSecurityConfig: Option[GestaltSecurityConfig] = config
+
       override def getAuthenticator: AuthenticatorService[DummyAuthenticator] = new DummyAuthenticatorService
 
       // define a function based on the request header
@@ -132,7 +129,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
 
     // requires WithApplication to create wsclient
     "allow easy specification of config via override" in new WithApplication {
-      val controller = new TestControllerWithConfigOverride(testConfig)
+      val controller = new TestController(Some(testConfig))
       controller.securityConfig.protocol   must_== testConfig.protocol
       controller.securityConfig.hostname   must_== testConfig.hostname
       controller.securityConfig.port       must_== testConfig.port
@@ -142,29 +139,53 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
     }
 
     "return WWW-Authenticate header on 401 (root)" in new WithApplication {
-      val controller = new TestFrameworkControllerSecurity()
+      val controller = new TestController()
       val realm = s"${controller.securityClient.protocol}://${controller.securityClient.hostname}:${controller.securityClient.port}/root/oauth/issue"
       val result = await(controller.hello().apply(FakeRequest()))
       result.header.status must_== 401
-      result.header.headers.get(HeaderNames.WWW_AUTHENTICATE) must beSome("Bearer realm=\"" + realm + "\"")
+      val w = result.header.headers.get(HeaderNames.WWW_AUTHENTICATE)
+      w must beSome
+      w.get.split(" ").headOption must beSome("Bearer")
+      w.get.split(" ").toSeq must containAllOf(Seq("realm=\"" + realm + "\"", "error=\"invalid_token\""))
     }
 
     "return WWW-Authenticate header on 401 (FQON)" in new WithApplication {
-      val controller = new TestFrameworkControllerSecurity()
+      val controller = new TestController()
       val fqon = "galacticfog"
       val realm = s"${controller.securityClient.protocol}://${controller.securityClient.hostname}:${controller.securityClient.port}/$fqon/oauth/issue"
       val result = await(controller.fromArgs(fqon).apply(FakeRequest()))
       result.header.status must_== 401
-      result.header.headers.get(HeaderNames.WWW_AUTHENTICATE) must beSome("Bearer realm=\"" + realm + "\"")
+      val w = result.header.headers.get(HeaderNames.WWW_AUTHENTICATE)
+      w must beSome
+      w.get.split(" ").headOption must beSome("Bearer")
+      w.get.split(" ").toSeq must containAllOf(Seq("realm=\"" + realm + "\"", "error=\"invalid_token\""))
+    }
+
+    val fakeApplication = FakeApplication()
+
+    "return WWW-Authenticate header on 401 (realm-override)" in new WithApplication() {
+      val controller = new TestController() {
+        override def securityRealmOverride(org: String): Option[String] = Some("https://realm.override:9455")
+      }
+      val realm = "https://realm.override:9455"
+      val result = await(controller.hello().apply(FakeRequest()))
+      result.header.status must_== 401
+      val w = result.header.headers.get(HeaderNames.WWW_AUTHENTICATE)
+      w must beSome
+      w.get.split(" ").headOption must beSome("Bearer")
+      w.get.split(" ").toSeq must containAllOf(Seq("realm=\"" + realm + "\"", "error=\"invalid_token\""))
     }
 
     "return WWW-Authenticate header on 401 (UUID)" in new WithApplication {
-      val controller = new TestFrameworkControllerSecurity()
+      val controller = new TestController()
       val orgId = UUID.randomUUID()
       val realm = s"${controller.securityClient.protocol}://${controller.securityClient.hostname}:${controller.securityClient.port}/orgs/$orgId/oauth/issue"
       val result = await(controller.aUUID(orgId).apply(FakeRequest()))
       result.header.status must_== 401
-      result.header.headers.get(HeaderNames.WWW_AUTHENTICATE) must beSome("Bearer realm=\"" + realm + "\"")
+      val w = result.header.headers.get(HeaderNames.WWW_AUTHENTICATE)
+      w must beSome
+      w.get.split(" ").headOption must beSome("Bearer")
+      w.get.split(" ").toSeq must containAllOf(Seq("realm=\"" + realm + "\"", "error=\"invalid_token\""))
     }
 
   }
