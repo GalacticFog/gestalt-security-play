@@ -12,17 +12,18 @@ scalacOptions ++= Seq(
 )
 
 resolvers ++= Seq(
-    "gestalt-snapshots" at "https://galacticfog.artifactoryonline.com/galacticfog/libs-snapshots-local",
-    "gestalt-releases" at "https://galacticfog.artifactoryonline.com/galacticfog/libs-releases-local",
-    "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/",
-    "Atlassian Releases" at "https://maven.atlassian.com/public/")
+  "gestalt-snapshots" at "https://galacticfog.artifactoryonline.com/galacticfog/libs-snapshots-local",
+  "gestalt-releases" at "https://galacticfog.artifactoryonline.com/galacticfog/libs-releases-local",
+  "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/",
+  "Atlassian Releases" at "https://maven.atlassian.com/public/"
+)
 
 publishTo <<= version { (v: String) =>
   val ao = "https://galacticfog.artifactoryonline.com/galacticfog/"
   if (v.trim.endsWith("SNAPSHOT"))
-    Some("publish-gf-snapshots" at ao + "libs-snapshots-local/")
+    Some("publish-gf-snapshots" at ao + "libs-snapshots-local;build.timestamp=" + new java.util.Date().getTime)
   else
-    Some("publish-gf-releases"  at ao + "libs-releases-local/")
+    Some("publish-gf-releases"  at ao + "libs-releases-local")
 }
 
 publishMavenStyle := true
