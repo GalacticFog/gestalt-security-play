@@ -26,6 +26,8 @@ publishTo <<= version { (v: String) =>
     Some("publish-gf-releases"  at ao + "libs-releases-local")
 }
 
+isSnapshot := true
+
 publishMavenStyle := true
 
 credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")

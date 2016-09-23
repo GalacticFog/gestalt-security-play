@@ -14,6 +14,8 @@ import play.api.mvc.RequestHeader
 import play.api.test.Helpers._
 import play.api.test._
 
+import scala.concurrent.Future
+
 @RunWith(classOf[JUnitRunner])
 class FakeSecuredRequestSpec extends Specification with Mockito with FutureAwaits with DefaultAwaitTimeout {
 
@@ -34,6 +36,12 @@ class FakeSecuredRequestSpec extends Specification with Mockito with FutureAwait
 
     def hello = Authenticate() { securedRequest =>
       Ok(s"hello, ${securedRequest.identity.account.username}. Your credentials were\n${securedRequest.identity.creds}")
+    }
+
+    def someDelegatedCallToSecurity = Authenticate().async { request =>
+      GestaltOrg.getCurrentOrg()(securityClient.withCreds(request.identity.creds)) map { org =>
+        Ok(s"credentials validate against ${org.fqon}")
+      }
     }
   }
 
@@ -92,6 +100,25 @@ class FakeSecuredRequestSpec extends Specification with Mockito with FutureAwait
       val result = controller.hello(request)
 
       status(result) must equalTo(UNAUTHORIZED)
+    }
+
+    "support mocked GestaltSecurityClient" in new WithApplication {
+      import com.galacticfog.gestalt.security.api.json.JsonImports.orgFormat
+      val org = GestaltOrg(UUID.randomUUID(), "some-org", fqon = "some-org", None, None, Seq())
+      val mc1 = mock[GestaltSecurityClient]
+      val mc2 = mock[GestaltSecurityClient]
+      mc1.withCreds(creds) returns mc2
+      // this sucks... testers should have to know the REST API, but GestaltOrg.getCurrentOrg is a static method
+      mc2.get[GestaltOrg]("orgs/current") returns Future.successful(org)
+      val request = FakeRequest().withHeaders(AUTHORIZATION -> creds.headerValue)
+      val controller = new TestController {
+        override val env = fakeEnv
+        override implicit val securityClient: GestaltSecurityClient = mc1
+      }
+      val result = controller.someDelegatedCallToSecurity(request)
+
+      status(result) must equalTo(OK)
+      contentAsString(result) must contain(org.fqon)
     }
 
   }
