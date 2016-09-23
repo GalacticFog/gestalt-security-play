@@ -38,9 +38,8 @@ class FakeSecuredRequestSpec extends Specification with Mockito with FutureAwait
       Ok(s"hello, ${securedRequest.identity.account.username}. Your credentials were\n${securedRequest.identity.creds}")
     }
 
-    def currentOrg = Authenticate().async {
-      // uses implicit GestaltSecurityClient in from GetsaltFrameworkSecuredController, via SecureController trait
-      GestaltOrg.getCurrentOrg() map { org =>
+    def someDelegatedCallToSecurity = Authenticate().async { request =>
+      GestaltOrg.getCurrentOrg()(securityClient.withCreds(request.identity.creds)) map { org =>
         Ok(s"credentials validate against ${org.fqon}")
       }
     }
@@ -106,14 +105,17 @@ class FakeSecuredRequestSpec extends Specification with Mockito with FutureAwait
     "support mocked GestaltSecurityClient" in new WithApplication {
       import com.galacticfog.gestalt.security.api.json.JsonImports.orgFormat
       val org = GestaltOrg(UUID.randomUUID(), "some-org", fqon = "some-org", None, None, Seq())
-      val mockSecurityClient = mock[GestaltSecurityClient]
-      mockSecurityClient.get[GestaltOrg]("orgs/current") returns Future.successful(org)
+      val mc1 = mock[GestaltSecurityClient]
+      val mc2 = mock[GestaltSecurityClient]
+      mc1.withCreds(creds) returns mc2
+      // this sucks... testers should have to know the REST API, but GestaltOrg.getCurrentOrg is a static method
+      mc2.get[GestaltOrg]("orgs/current") returns Future.successful(org)
       val request = FakeRequest().withHeaders(AUTHORIZATION -> creds.headerValue)
       val controller = new TestController {
         override val env = fakeEnv
-        override implicit val securityClient: GestaltSecurityClient = mockSecurityClient
+        override implicit val securityClient: GestaltSecurityClient = mc1
       }
-      val result = controller.currentOrg(request)
+      val result = controller.someDelegatedCallToSecurity(request)
 
       status(result) must equalTo(OK)
       contentAsString(result) must contain(org.fqon)
