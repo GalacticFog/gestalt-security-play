@@ -2,7 +2,7 @@ name := """gestalt-security-play"""
 
 organization := "com.galacticfog"
 
-version := "2.2.5-SNAPSHOT"
+version := "2.2.6"
 
 scalaVersion := "2.11.6"
 
@@ -25,6 +25,8 @@ publishTo <<= version { (v: String) =>
   else
     Some("publish-gf-releases"  at ao + "libs-releases-local")
 }
+
+isSnapshot := true
 
 publishMavenStyle := true
 
