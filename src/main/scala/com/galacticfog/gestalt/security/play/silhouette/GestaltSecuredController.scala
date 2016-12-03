@@ -41,7 +41,7 @@ class GestaltSecuredController() extends Silhouette[AuthAccount, DummyAuthentica
       Logger.error(s"caught exception trying to get security config: ${t.getMessage}",t)
       getFallbackSecurityConfig
   }
-
+  
   Logger.info(s"bound security in delegated mode to ${securityConfig.protocol}://${securityConfig.hostname}:${securityConfig.port}, apiKey: ${securityConfig.apiKey}, appId: ${securityConfig.appId}")
 
   val securityClient: GestaltSecurityClient = GestaltSecurityClient(securityConfig)

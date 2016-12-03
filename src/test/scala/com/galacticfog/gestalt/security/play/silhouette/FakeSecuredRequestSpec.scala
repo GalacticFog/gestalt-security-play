@@ -16,7 +16,8 @@ import play.api.test._
 
 import scala.concurrent.Future
 
-@RunWith(classOf[JUnitRunner])
+import scala.concurrent.ExecutionContext.global
+
 class FakeSecuredRequestSpec extends Specification with Mockito with FutureAwaits with DefaultAwaitTimeout {
 
   // this is how gestalt-meta uses GestaltFrameworkSecuredController, so it's a good test/example case

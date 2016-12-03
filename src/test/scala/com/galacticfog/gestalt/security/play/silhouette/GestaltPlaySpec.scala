@@ -1,5 +1,6 @@
 package com.galacticfog.gestalt.security.play.silhouette
 
+
 import java.util.UUID
 
 import com.galacticfog.gestalt.security.api.GestaltToken.ACCESS_TOKEN
@@ -24,7 +25,9 @@ import play.api.mvc.Action
 import play.api.mvc.Results._
 import play.api.test.Helpers._
 
-@RunWith(classOf[JUnitRunner])
+import scala.concurrent.ExecutionContext.global
+
+
 class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with DefaultAwaitTimeout {
 
   val testConfig = GestaltSecurityConfig(

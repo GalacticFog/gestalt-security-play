@@ -12,7 +12,7 @@ import play.api.i18n.Lang
 import play.api.mvc.RequestHeader
 import play.api.test.WithApplication
 
-@RunWith(classOf[JUnitRunner])
+
 class GrantSpecs extends Specification with Mockito with Tables {
 
   // Silhouette Authorization.isAuthorized has implicit args for the following
