@@ -2,12 +2,19 @@ package com.galacticfog.gestalt.security.play.silhouette.authorization
 
 import com.galacticfog.gestalt.security.play.silhouette.AuthAccount
 import com.mohiva.play.silhouette.api.Authorization
+import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
 import play.api.i18n.Lang
 import play.api.mvc.RequestHeader
 
 import scala.util.matching.Regex
 
-case class matchesGrant(testGrantName: String) extends Authorization[AuthAccount] {
+import play.api.i18n.Messages
+import play.api.mvc.Request
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+
+
+case class matchesGrant(testGrantName: String) extends Authorization[AuthAccount,DummyAuthenticator] {
   import matchesGrant._
 
   val testSplit = splitAndValidate(testGrantName)
@@ -16,7 +23,8 @@ case class matchesGrant(testGrantName: String) extends Authorization[AuthAccount
     identity.rights.exists(r => splitWildcardMatch(testSplit, splitAndValidate(r.grantName)))
   }
 
-  override def isAuthorized(identity: AuthAccount)(implicit request: RequestHeader, lang: Lang): Boolean = {
+  override def isAuthorized[B](identity: AuthAccount, authenticator: DummyAuthenticator)(
+      implicit request: Request[B], messages: Messages): Future[Boolean] = Future {
     checkAuthorization(identity)
   }
 }

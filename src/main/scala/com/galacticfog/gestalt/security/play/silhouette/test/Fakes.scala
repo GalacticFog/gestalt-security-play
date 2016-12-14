@@ -29,14 +29,17 @@ case class FakeGestaltSecurityEnvironment[T <: Authenticator: TypeTag](identitie
                                                                        client: GestaltSecurityClient)
   extends Environment[AuthAccountWithCreds, T] {
 
+  implicit val executionContext: scala.concurrent.ExecutionContext = ???
+  
   val identityService: IdentityService[AuthAccountWithCreds] = new AccountServiceImplWithCreds()
 
   val eventBus: EventBus = EventBus()
 
   val authenticatorService: AuthenticatorService[T] = FakeAuthenticatorService[T]()
 
-  val providers = Map(
-    FakeGestaltAuthProvider.ID -> new FakeGestaltAuthProvider(identities, client)
-  )
+//  val providers = Map(
+//    FakeGestaltAuthProvider.ID -> new FakeGestaltAuthProvider(identities, client)
+//  )
+  override def requestProviders: Seq[com.mohiva.play.silhouette.api.RequestProvider] = ???
 }
 

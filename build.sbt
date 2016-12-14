@@ -36,14 +36,15 @@ credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
 shellPrompt in ThisBuild := { state => "\033[0;36m" + Project.extract(state).currentRef.project + "\033[0m] " }
 
 libraryDependencies ++= Seq(
-	"com.typesafe.play" % "play-json_2.11" 			  % "2.5.10",
-  	"com.galacticfog" %% "gestalt-security-sdk-scala" % "3.0.0",
-  	"com.mohiva" %% "play-silhouette" 				  % "4.0.0",
-  	"com.mohiva" %% "play-silhouette-testkit" 		  % "4.0.0",
+	"com.typesafe.play" % "play-json_2.11" 			  % "2.4.3",
+	
+  	"com.galacticfog" %% "gestalt-security-sdk-scala" % "2.3.0-SNAPSHOT",
+  	"com.mohiva" %% "play-silhouette" 				  % "3.0.5",
+  	"com.mohiva" %% "play-silhouette-testkit" 		  % "3.0.5",
   
 	"org.specs2" % "specs2-core_2.11" 				  % "3.8.3"  % "test",
 	"org.specs2" % "specs2-matcher-extra_2.11" 		  % "3.8.3"  % "test",
-	"com.typesafe.play" % "play-test_2.11" 			  % "2.5.10" % "test",
-  	"de.leanovate.play-mockws" % "play-mockws_2.11"   % "2.5.1"  % "test" 
- )
+	"com.typesafe.play" % "play-test_2.11" 			  % "2.4.3"  % "test",
+  	"de.leanovate.play-mockws" % "play-mockws_2.11"   % "2.4.2"  % "test" 
+)
 

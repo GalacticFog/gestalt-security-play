@@ -22,6 +22,16 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends S
 
   def getAuthenticator: AuthenticatorService[A]
 
+ /** As seen from <$anon: com.mohiva.play.silhouette.api.Environment[com.galacticfog.gestalt.security.play.silhouette.AuthAccountWithCreds,A]>, the missing signatures are as follows.
+  *  For convenience, these are usable as stub implementations.
+  */
+//   // Members declared in com.mohiva.play.silhouette.api.Environment
+//   def requestProviders: Seq[com.mohiva.play.silhouette.api.RequestProvider] = ???
+
+   // Members declared in com.mohiva.play.silhouette.api.util.ExecutionContextProvider
+   
+  
+  
   class GestaltFrameworkAuthActionBuilder(maybeGenFQON: Option[RequestHeader => Option[String]] = None) extends ActionBuilder[SecuredRequest] {
     def invokeBlock[B](request: Request[B], block: SecuredRequest[B] => Future[Result]) = {
       val ocr = OrgContextRequest(maybeGenFQON flatMap {_(request)}, request)
@@ -104,9 +114,11 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends S
 
   // override for Silhouette
   val env = new Environment[AuthAccountWithCreds,A] {
+    implicit val executionContext: scala.concurrent.ExecutionContext = ???
     override def identityService: IdentityService[AuthAccountWithCreds] = new AccountServiceImplWithCreds()
     override def authenticatorService: AuthenticatorService[A] = getAuthenticator
-    override def providers: Map[String, Provider] = Map(authProvider.id -> authProvider)
+    //override def requestProviders: Map[String, Provider] = Map(authProvider.id -> authProvider)
+    override def requestProviders: Seq[com.mohiva.play.silhouette.api.RequestProvider] = ???
     override def eventBus: EventBus = EventBus()
   }
 

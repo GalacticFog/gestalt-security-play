@@ -1,5 +1,7 @@
 package com.galacticfog.gestalt.security.play.silhouette
 
+import javax.inject.Inject
+import play.api.i18n.MessagesApi
 import java.util.UUID
 
 import com.galacticfog.gestalt.security.api._
@@ -8,11 +10,11 @@ import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.impl.authenticators.{DummyAuthenticatorService, DummyAuthenticator}
 import play.api.Logger
 import play.api.Play.current
-import play.api.libs.concurrent.Execution.Implicits._
+//import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 case class AuthAccount(account: GestaltAccount, groups: Seq[ResourceLink], rights: Seq[GestaltRightGrant]) extends Identity
 
-class GestaltSecuredController() extends Silhouette[AuthAccount, DummyAuthenticator] {
+class GestaltSecuredController @Inject()(val messagesApi: MessagesApi) extends Silhouette[AuthAccount, DummyAuthenticator] {
 
   def getFallbackSecurityConfig: GestaltSecurityConfig = GestaltSecurityConfig(
     mode = DELEGATED_SECURITY_MODE,
@@ -49,9 +51,11 @@ class GestaltSecuredController() extends Silhouette[AuthAccount, DummyAuthentica
 
   // override for Silhouette
   val env = new Environment[AuthAccount,DummyAuthenticator] {
+    implicit val executionContext: scala.concurrent.ExecutionContext = ???
     override def identityService: IdentityService[AuthAccount] = new AccountServiceImpl()
     override def authenticatorService: AuthenticatorService[DummyAuthenticator] = new DummyAuthenticatorService()
-    override def providers: Map[String, Provider] = Map(authProvider.id -> authProvider)
+    //override def providers: Map[String, Provider] = Map(authProvider.id -> authProvider)
+    override def requestProviders: Seq[com.mohiva.play.silhouette.api.RequestProvider] = ???
     override def eventBus: EventBus = EventBus()
   }
 
