@@ -18,10 +18,3 @@ case class hasGrant(grantName: String) extends Authorization[AuthAccount, DummyA
   }
   
 }
-
-
-//type [B](
-//    identity: com.galacticfog.gestalt.security.play.silhouette.AuthAccount, 
-//    authenticator: com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator)
-//(implicit request: play.api.mvc.Request[B], 
-//    messages: play.api.i18n.Messages) scala.concurrent.Future[Boolean]

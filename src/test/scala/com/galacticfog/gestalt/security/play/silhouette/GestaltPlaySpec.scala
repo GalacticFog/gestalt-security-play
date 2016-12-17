@@ -27,7 +27,7 @@ import play.api.test.Helpers._
 
 import scala.concurrent.ExecutionContext.global
 
-
+@RunWith(classOf[JUnitRunner])
 class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with DefaultAwaitTimeout {
 
   val testConfig = GestaltSecurityConfig(
@@ -40,7 +40,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
     appId = Some(UUID.randomUUID)
   )
 
-  "GestaltSecuredController" should {
+  "GestaltFrameworkSecuredController" should {
 
     class TestController(config: Option[GestaltSecurityConfig] = None) extends GestaltFrameworkSecuredController[DummyAuthenticator] {
 

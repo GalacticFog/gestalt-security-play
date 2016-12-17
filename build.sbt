@@ -15,7 +15,8 @@ resolvers ++= Seq(
   "gestalt-snapshots" at "https://galacticfog.artifactoryonline.com/galacticfog/libs-snapshots-local",
   "gestalt-releases" at "https://galacticfog.artifactoryonline.com/galacticfog/libs-releases-local",
   "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/",
-  "Atlassian Releases" at "https://maven.atlassian.com/public/"
+  "Atlassian Releases" at "https://maven.atlassian.com/public/",
+  "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
 )
 
 publishTo <<= version { (v: String) =>
@@ -36,15 +37,16 @@ credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
 shellPrompt in ThisBuild := { state => "\033[0;36m" + Project.extract(state).currentRef.project + "\033[0m] " }
 
 libraryDependencies ++= Seq(
-	"com.typesafe.play" % "play-json_2.11" 			  % "2.4.3",
-	
-  	"com.galacticfog" %% "gestalt-security-sdk-scala" % "2.3.0-SNAPSHOT",
-  	"com.mohiva" %% "play-silhouette" 				  % "3.0.5",
-  	"com.mohiva" %% "play-silhouette-testkit" 		  % "3.0.5",
-  
-	"org.specs2" % "specs2-core_2.11" 				  % "3.8.3"  % "test",
-	"org.specs2" % "specs2-matcher-extra_2.11" 		  % "3.8.3"  % "test",
-	"com.typesafe.play" % "play-test_2.11" 			  % "2.4.3"  % "test",
-  	"de.leanovate.play-mockws" % "play-mockws_2.11"   % "2.4.2"  % "test" 
+  "com.galacticfog" %% "gestalt-security-sdk-scala" % "2.3.0-SNAPSHOT",
+  "com.mohiva" %% "play-silhouette" 				  % "3.0.5",
+  "com.mohiva" %% "play-silhouette-testkit" 		  % "3.0.5",
+  "com.typesafe.play" % "play-json_2.11" 			  % "2.4.3",
+  "com.typesafe.play" % "play-test_2.11" 			  % "2.4.3"  % "test",
+  "de.leanovate.play-mockws" % "play-mockws_2.11"     % "2.4.2"  % "test",
+  "org.specs2" %% "specs2-core" 				      % "3.8.3"  % "test",
+  "org.specs2" %% "specs2-junit"				      % "3.8.3"  % "test",
+  "org.specs2" %% "specs2-mock" 				      % "3.8.3"  % "test",
+  "org.specs2" %% "specs2-matcher-extra" 		      % "3.8.3"  % "test"
 )
+
 

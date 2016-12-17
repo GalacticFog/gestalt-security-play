@@ -15,7 +15,7 @@ import scala.util.{Failure, Success, Try}
 
 class GestaltAuthResponseWithCreds(override val account: GestaltAccount, override val groups: Seq[ResourceLink], override val rights: Seq[GestaltRightGrant], override val orgId: UUID, val creds: GestaltAPICredentials) extends GestaltAuthResponse(account, groups, rights, orgId)
 
-class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends GestaltBaseAuthProvider(client) {
+class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends GestaltBaseAuthProvider {
 
   val usernameAndDomain = """(\w+)@([a-zA-Z0-9-.]+)""".r
 

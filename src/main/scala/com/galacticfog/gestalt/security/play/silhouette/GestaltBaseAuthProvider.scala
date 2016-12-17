@@ -16,7 +16,7 @@ class GestaltLoginInfo(override val providerID: String, override val providerKey
 
 class GestaltLoginInfoWithCreds(override val providerID: String, override val providerKey: String, val authResponse: GestaltAuthResponse, val creds: GestaltAPICredentials) extends LoginInfo(providerID, providerKey)
 
-abstract class GestaltBaseAuthProvider(client: GestaltSecurityClient) extends RequestProvider {
+abstract class GestaltBaseAuthProvider extends RequestProvider {
 
   def gestaltAuthImpl[B](request: Request[B]): Future[Option[GestaltAuthResponse]]
 

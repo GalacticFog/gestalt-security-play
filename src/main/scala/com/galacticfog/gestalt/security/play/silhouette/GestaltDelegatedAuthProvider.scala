@@ -3,14 +3,14 @@ package com.galacticfog.gestalt.security.play.silhouette
 import java.util.UUID
 
 import com.galacticfog.gestalt.security.api._
-import com.galacticfog.gestalt.security.play.silhouette.GestaltAuthProvider._
+import com.galacticfog.gestalt.security.play.silhouette.GestaltDelegatedAuthProvider._
 import play.api.Logger
 import play.api.http.HeaderNames
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc.Request
 import scala.concurrent.Future
 
-class GestaltAuthProvider(appId: UUID, client: GestaltSecurityClient) extends GestaltBaseAuthProvider(client) {
+class GestaltDelegatedAuthProvider(appId: UUID, client: GestaltSecurityClient) extends GestaltBaseAuthProvider {
   override def id: String = ID
 
   override def gestaltAuthImpl[B](request: Request[B]): Future[Option[GestaltAuthResponse]] = {
@@ -26,6 +26,6 @@ class GestaltAuthProvider(appId: UUID, client: GestaltSecurityClient) extends Ge
   }
 }
 
-object GestaltAuthProvider {
+object GestaltDelegatedAuthProvider {
   val ID = "gestalt-auth"
 }

@@ -4,36 +4,32 @@ import java.util.UUID
 
 import com.galacticfog.gestalt.security.api._
 import com.galacticfog.gestalt.security.play.silhouette.test.FakeGestaltSecurityEnvironment
-import com.mohiva.play.silhouette.api.services.AuthenticatorService
-import com.mohiva.play.silhouette.impl.authenticators.{DummyAuthenticatorService, DummyAuthenticator}
+import com.google.inject.Inject
+import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
 import org.junit.runner._
 import org.specs2.mock.Mockito
 import org.specs2.mutable._
-import org.specs2.runner._
+import org.specs2.runner.JUnitRunner
+import play.api.i18n.MessagesApi
 import play.api.mvc.RequestHeader
 import play.api.test.Helpers._
 import play.api.test._
+import play.test.WithApplication
+import play.api.libs.concurrent.Execution.Implicits._
 
 import scala.concurrent.Future
 
-import scala.concurrent.ExecutionContext.global
-
+@RunWith(classOf[JUnitRunner])
 class FakeSecuredRequestSpec extends Specification with Mockito with FutureAwaits with DefaultAwaitTimeout {
 
-  // this is how gestalt-meta uses GestaltFrameworkSecuredController, so it's a good test/example case
-  trait SecureController extends GestaltFrameworkSecuredController[DummyAuthenticator] {
-    override def getAuthenticator: AuthenticatorService[DummyAuthenticator] = new DummyAuthenticatorService
+  class TestController @Inject()(messagesApi: MessagesApi,
+                                 securityClient: GestaltSecurityClient,
+                                 env: GestaltSecurityEnvironment[AuthAccountWithCreds,DummyAuthenticator])
+    extends GestaltFrameworkSecuredController[DummyAuthenticator](messagesApi, securityClient, env) {
 
     def Authenticate() = new GestaltFrameworkAuthActionBuilderUUID(Some({rh: RequestHeader => None: Option[UUID]}))
     def Authenticate(fqon: String) = new GestaltFrameworkAuthActionBuilder(Some({rh: RequestHeader => Some(fqon)}))
     def Authenticate(org: UUID) = new GestaltFrameworkAuthActionBuilderUUID(Some({rh: RequestHeader => Some(org)}))
-  }
-
-  class TestController extends SecureController {
-
-    // this doesn't really matter, because it's used only to construct an internal environment in the base class
-    // we'll override it in our tests below
-    override def getAuthenticator = throw new RuntimeException("cannot instantiate TestController directly, must subclass and override env")
 
     def hello = Authenticate() { securedRequest =>
       Ok(s"hello, ${securedRequest.identity.account.username}. Your credentials were\n${securedRequest.identity.creds}")

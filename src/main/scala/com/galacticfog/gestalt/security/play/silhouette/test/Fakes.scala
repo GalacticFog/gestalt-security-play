@@ -1,21 +1,21 @@
 package com.galacticfog.gestalt.security.play.silhouette.test
 
-import com.galacticfog.gestalt.security.api.{GestaltAuthResponse, GestaltSecurityClient, GestaltAPICredentials}
-import com.galacticfog.gestalt.security.play.silhouette.{AccountServiceImplWithCreds, AuthAccountWithCreds, GestaltAuthResponseWithCreds, GestaltBaseAuthProvider}
+import com.galacticfog.gestalt.security.api.{GestaltAuthResponse, GestaltAPICredentials}
+import com.galacticfog.gestalt.security.play.silhouette._
 import com.mohiva.play.silhouette.api.services.{AuthenticatorService, IdentityService}
-import com.mohiva.play.silhouette.api.{Environment, EventBus, Authenticator}
+import com.mohiva.play.silhouette.api.{RequestProvider, EventBus, Authenticator}
 import com.mohiva.play.silhouette.test.FakeAuthenticatorService
 import play.api.http.HeaderNames
 import play.api.mvc.Request
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContextExecutor, ExecutionContext, Future}
 import scala.reflect.runtime.universe._
 
 object FakeGestaltAuthProvider {
   val ID: String = "gestalt-fake-auth-provider"
 }
 
-class FakeGestaltAuthProvider(identities: Seq[(GestaltAPICredentials,GestaltAuthResponse)], client: GestaltSecurityClient) extends GestaltBaseAuthProvider(client) {
+class FakeGestaltAuthProvider(identities: Seq[(GestaltAPICredentials,GestaltAuthResponse)]) extends GestaltBaseAuthProvider {
   override def gestaltAuthImpl[B](request: Request[B]): Future[Option[GestaltAuthResponse]] = {
     Future.successful(for {
       creds <- request.headers.get(HeaderNames.AUTHORIZATION) flatMap GestaltAPICredentials.getCredentials
@@ -25,21 +25,19 @@ class FakeGestaltAuthProvider(identities: Seq[(GestaltAPICredentials,GestaltAuth
   override def id: String = FakeGestaltAuthProvider.ID
 }
 
-case class FakeGestaltSecurityEnvironment[T <: Authenticator: TypeTag](identities: Seq[(GestaltAPICredentials, GestaltAuthResponse)],
-                                                                       client: GestaltSecurityClient)
-  extends Environment[AuthAccountWithCreds, T] {
+case class FakeGestaltSecurityEnvironment[T <: Authenticator: TypeTag]
+                                         (identities: Seq[(GestaltAPICredentials, GestaltAuthResponse)])
+                                         (implicit val ec: ExecutionContextExecutor)
+                                         extends GestaltSecurityEnvironment[AuthAccountWithCreds,T] {
 
-  implicit val executionContext: scala.concurrent.ExecutionContext = ???
-  
-  val identityService: IdentityService[AuthAccountWithCreds] = new AccountServiceImplWithCreds()
+  override val identityService: IdentityService[AuthAccountWithCreds] = new AccountServiceImplWithCreds()
 
-  val eventBus: EventBus = EventBus()
+  override val authenticatorService: AuthenticatorService[T] = FakeAuthenticatorService[T]()
 
-  val authenticatorService: AuthenticatorService[T] = FakeAuthenticatorService[T]()
+  override val eventBus: EventBus = EventBus()
 
-//  val providers = Map(
-//    FakeGestaltAuthProvider.ID -> new FakeGestaltAuthProvider(identities, client)
-//  )
-  override def requestProviders: Seq[com.mohiva.play.silhouette.api.RequestProvider] = ???
+  override val requestProviders: Seq[RequestProvider] = Seq(new FakeGestaltAuthProvider(identities))
+
+  override implicit val executionContext: ExecutionContext = ec
 }
 

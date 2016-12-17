@@ -1,13 +1,13 @@
 package com.galacticfog.gestalt.security.play.silhouette
 
+import scala.concurrent.{ExecutionContext, Future}
+import play.api.Logger
+import com.google.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api.LoginInfo
 import com.mohiva.play.silhouette.api.services.IdentityService
-import play.api.Logger
-import scala.concurrent.ExecutionContext.Implicits.global
 
-import scala.concurrent.Future
-
-class AccountServiceImpl extends IdentityService[AuthAccount] {
+@Singleton
+class AccountServiceImpl @Inject()()(implicit ec: ExecutionContext) extends IdentityService[AuthAccount] {
   override def retrieve(loginInfo: LoginInfo): Future[Option[AuthAccount]] = Future {
     loginInfo match {
       case glo: GestaltLoginInfo =>
@@ -19,7 +19,8 @@ class AccountServiceImpl extends IdentityService[AuthAccount] {
   }
 }
 
-class AccountServiceImplWithCreds extends IdentityService[AuthAccountWithCreds] {
+@Singleton
+class AccountServiceImplWithCreds @Inject()()(implicit ec: ExecutionContext) extends IdentityService[AuthAccountWithCreds] {
   override def retrieve(loginInfo: LoginInfo): Future[Option[AuthAccountWithCreds]] = Future {
     loginInfo match {
       case glo: GestaltLoginInfoWithCreds =>

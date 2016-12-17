@@ -1,37 +1,34 @@
 package com.galacticfog.gestalt.security.play.silhouette
 
 import java.util.UUID
-
 import com.galacticfog.gestalt.security.api._
 import com.galacticfog.gestalt.security.api.errors.UnauthorizedAPIException
 import com.galacticfog.gestalt.security.api.json.JsonImports.exceptionFormat
-import com.mohiva.play.silhouette.api.services.{AuthenticatorService, IdentityService}
 import com.mohiva.play.silhouette.api._
-import play.api.Logger
+import play.api.i18n.MessagesApi
 import play.api.libs.json.Json
 import play.api.mvc._
 import play.api.libs.concurrent.Execution.Implicits._
-import play.api.Play.current
 import scala.concurrent.Future
 
-case class AuthAccountWithCreds(account: GestaltAccount, groups: Seq[ResourceLink], rights: Seq[GestaltRightGrant], creds: GestaltAPICredentials, authenticatingOrgId: UUID) extends Identity
 case class OrgContextRequest[B](orgFQON: Option[String], request: Request[B]) extends WrappedRequest(request)
 case class OrgContextRequestUUID[B](orgId: Option[UUID], request: Request[B]) extends WrappedRequest(request)
 
-abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends Silhouette[AuthAccountWithCreds, A] {
+abstract class GestaltFrameworkSecuredController[A <: Authenticator]( mAPI: MessagesApi,
+                                                                      client: GestaltSecurityClient,
+                                                                      environment: Environment[AuthAccountWithCreds, A])
+  extends Silhouette[AuthAccountWithCreds, A] {
 
-  def getAuthenticator: AuthenticatorService[A]
+  val securityClient: GestaltSecurityClient = client
 
- /** As seen from <$anon: com.mohiva.play.silhouette.api.Environment[com.galacticfog.gestalt.security.play.silhouette.AuthAccountWithCreds,A]>, the missing signatures are as follows.
-  *  For convenience, these are usable as stub implementations.
-  */
-//   // Members declared in com.mohiva.play.silhouette.api.Environment
-//   def requestProviders: Seq[com.mohiva.play.silhouette.api.RequestProvider] = ???
+  override val messagesApi: MessagesApi = mAPI
 
-   // Members declared in com.mohiva.play.silhouette.api.util.ExecutionContextProvider
-   
-  
-  
+  override val env: Environment[AuthAccountWithCreds, A] = environment
+
+  def securityRealmOverride(orgFQON: String): Option[String] = scala.util.Properties.envOrNone("GESTALT_SECURITY_REALM").map(
+    _.stripSuffix("/") + s"/${orgFQON}/oauth/issue"
+  )
+
   class GestaltFrameworkAuthActionBuilder(maybeGenFQON: Option[RequestHeader => Option[String]] = None) extends ActionBuilder[SecuredRequest] {
     def invokeBlock[B](request: Request[B], block: SecuredRequest[B] => Future[Result]) = {
       val ocr = OrgContextRequest(maybeGenFQON flatMap {_(request)}, request)
@@ -41,7 +38,7 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends S
         case HandlerResult(r, Some(sr)) => block(sr)
         case HandlerResult(r, None) => Future{
           lazy val org = ocr.orgFQON getOrElse "root"
-          lazy val defRealm = s"${securityConfig.protocol}://${securityConfig.hostname}:${securityConfig.port}/${org}/oauth/issue"
+          lazy val defRealm = s"${securityClient.protocol}://${securityClient.hostname}:${securityClient.port}/${org}/oauth/issue"
           val realm: String = securityRealmOverride(org) getOrElse defRealm
           val challenge: String = "Bearer realm=\"" + realm + "\" error=\"invalid_token\""
           Unauthorized(Json.toJson(UnauthorizedAPIException("","Authentication required",""))).withHeaders(WWW_AUTHENTICATE -> challenge)
@@ -59,7 +56,7 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends S
         case HandlerResult(r, Some(sr)) => block(sr)
         case HandlerResult(r, None) => Future{
           lazy val org = ocr.orgId map {orgId => s"orgs/${orgId}"} getOrElse "root"
-          lazy val defRealm = s"${securityConfig.protocol}://${securityConfig.hostname}:${securityConfig.port}/${org}/oauth/issue"
+          lazy val defRealm = s"${securityClient.protocol}://${securityClient.hostname}:${securityClient.port}/${org}/oauth/issue"
           val realm: String = securityRealmOverride(org) getOrElse defRealm
           val challenge: String = "Bearer realm=\"" + realm + "\" error=\"invalid_token\""
           Unauthorized(Json.toJson(UnauthorizedAPIException("","Authentication required",""))).withHeaders(WWW_AUTHENTICATE -> challenge)
@@ -75,51 +72,5 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]() extends S
     def apply(genOrgId: => Option[UUID]): GestaltFrameworkAuthActionBuilderUUID = new GestaltFrameworkAuthActionBuilderUUID(Some({rh: RequestHeader => genOrgId}))
   }
 
-  def getFallbackSecurityConfig: GestaltSecurityConfig = GestaltSecurityConfig(
-    mode = FRAMEWORK_SECURITY_MODE,
-    protocol = HTTP,
-    hostname = "localhost",
-    port = 9455,
-    apiKey = UUID.randomUUID().toString,
-    apiSecret = "00000noAPISecret00000000",
-    appId = None
-  )
-
-  def getSecurityConfig: Option[GestaltSecurityConfig] = None
-
-  val securityConfig: GestaltSecurityConfig = try {
-    Logger.info("attempting to determine GestaltSecurityConfig for framework authentication controller")
-    val c: Option[GestaltSecurityConfig] = this.getSecurityConfig orElse GestaltSecurityConfig.getSecurityConfig
-    c.flatMap( config =>
-      if (config.mode == FRAMEWORK_SECURITY_MODE && config.isWellDefined) Some(config)
-      else None
-    ).getOrElse {
-      Logger.warn("could not determine suitable GestaltSecurityConfig; relying on getFallbackSecurityConfig()")
-      getFallbackSecurityConfig
-    }
-  } catch {
-    case t: Throwable =>
-      Logger.error(s"caught exception trying to get security config: ${t.getMessage}",t)
-      getFallbackSecurityConfig
-  }
-
-  def securityRealmOverride(orgFQON: String): Option[String] = scala.util.Properties.envOrNone("GESTALT_SECURITY_REALM").map(
-    _.stripSuffix("/") + s"/${orgFQON}/oauth/issue"
-  )
-
-  Logger.info(s"bound security in framework mode to ${securityConfig.protocol}://${securityConfig.hostname}:${securityConfig.port}")
-
-  implicit val securityClient: GestaltSecurityClient = GestaltSecurityClient(securityConfig)
-  val authProvider = new GestaltFrameworkAuthProvider(securityClient)
-
-  // override for Silhouette
-  val env = new Environment[AuthAccountWithCreds,A] {
-    implicit val executionContext: scala.concurrent.ExecutionContext = ???
-    override def identityService: IdentityService[AuthAccountWithCreds] = new AccountServiceImplWithCreds()
-    override def authenticatorService: AuthenticatorService[A] = getAuthenticator
-    //override def requestProviders: Map[String, Provider] = Map(authProvider.id -> authProvider)
-    override def requestProviders: Seq[com.mohiva.play.silhouette.api.RequestProvider] = ???
-    override def eventBus: EventBus = EventBus()
-  }
-
 }
+
