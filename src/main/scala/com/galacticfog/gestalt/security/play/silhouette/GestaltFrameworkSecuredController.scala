@@ -15,11 +15,10 @@ case class OrgContextRequest[B](orgFQON: Option[String], request: Request[B]) ex
 case class OrgContextRequestUUID[B](orgId: Option[UUID], request: Request[B]) extends WrappedRequest(request)
 
 abstract class GestaltFrameworkSecuredController[A <: Authenticator]( mAPI: MessagesApi,
-                                                                      client: GestaltSecurityClient,
-                                                                      environment: Environment[AuthAccountWithCreds, A])
+                                                                      environment: GestaltSecurityEnvironment[AuthAccountWithCreds, A])
   extends Silhouette[AuthAccountWithCreds, A] {
 
-  val securityClient: GestaltSecurityClient = client
+  val securityClient: GestaltSecurityClient = environment.client
 
   override val messagesApi: MessagesApi = mAPI
 

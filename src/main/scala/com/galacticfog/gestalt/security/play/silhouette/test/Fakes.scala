@@ -1,14 +1,14 @@
 package com.galacticfog.gestalt.security.play.silhouette.test
 
-import com.galacticfog.gestalt.security.api.{GestaltAuthResponse, GestaltAPICredentials}
+import com.galacticfog.gestalt.security.api.{GestaltAPICredentials, GestaltAuthResponse, GestaltSecurityClient, GestaltSecurityConfig}
 import com.galacticfog.gestalt.security.play.silhouette._
 import com.mohiva.play.silhouette.api.services.{AuthenticatorService, IdentityService}
-import com.mohiva.play.silhouette.api.{RequestProvider, EventBus, Authenticator}
+import com.mohiva.play.silhouette.api.{Authenticator, EventBus, RequestProvider}
 import com.mohiva.play.silhouette.test.FakeAuthenticatorService
 import play.api.http.HeaderNames
 import play.api.mvc.Request
 
-import scala.concurrent.{ExecutionContextExecutor, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.reflect.runtime.universe._
 
 object FakeGestaltAuthProvider {
@@ -25,10 +25,11 @@ class FakeGestaltAuthProvider(identities: Seq[(GestaltAPICredentials,GestaltAuth
   override def id: String = FakeGestaltAuthProvider.ID
 }
 
-case class FakeGestaltSecurityEnvironment[T <: Authenticator: TypeTag]
-                                         (identities: Seq[(GestaltAPICredentials, GestaltAuthResponse)])
-                                         (implicit val ec: ExecutionContextExecutor)
-                                         extends GestaltSecurityEnvironment[AuthAccountWithCreds,T] {
+case class FakeGestaltSecurityEnvironment[T <: Authenticator: TypeTag] ( identities: Seq[(GestaltAPICredentials, GestaltAuthResponse)],
+                                                                         config: GestaltSecurityConfig,
+                                                                         client: GestaltSecurityClient )
+                                                                       ( implicit val ec: ExecutionContextExecutor )
+  extends GestaltSecurityEnvironment[AuthAccountWithCreds,T] {
 
   override val identityService: IdentityService[AuthAccountWithCreds] = new AccountServiceImplWithCreds()
 
@@ -39,5 +40,6 @@ case class FakeGestaltSecurityEnvironment[T <: Authenticator: TypeTag]
   override val requestProviders: Seq[RequestProvider] = Seq(new FakeGestaltAuthProvider(identities))
 
   override implicit val executionContext: ExecutionContext = ec
+
 }
 
