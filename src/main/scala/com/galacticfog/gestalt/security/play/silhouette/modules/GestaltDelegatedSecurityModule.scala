@@ -1,31 +1,32 @@
-package com.galacticfog.gestalt.security.play.silhouette
+package com.galacticfog.gestalt.security.play.silhouette.modules
 
 import java.util.UUID
 
-import com.galacticfog.gestalt.security.api.{HTTP, FRAMEWORK_SECURITY_MODE, GestaltSecurityConfig}
+import com.galacticfog.gestalt.security.api.{DELEGATED_SECURITY_MODE, FRAMEWORK_SECURITY_MODE, GestaltSecurityConfig, HTTP}
+import com.galacticfog.gestalt.security.play.silhouette.{AccountServiceImpl, AuthAccount}
 import com.google.inject.AbstractModule
 import com.mohiva.play.silhouette.api.services.IdentityService
 import play.api.Logger
 
-class GestaltFrameworkSecurityModule extends AbstractModule {
+class GestaltDelegatedSecurityModule extends AbstractModule {
 
   override def configure() = {
     bind(classOf[GestaltSecurityConfig]).toInstance(defaultConfig)
-    bind(classOf[IdentityService[AuthAccountWithCreds]]).to(classOf[AccountServiceImplWithCreds])
+    bind(classOf[IdentityService[AuthAccount]]).to(classOf[AccountServiceImpl ])
   }
 
   lazy val FALLBACK_SECURITY_CONFIG: GestaltSecurityConfig = GestaltSecurityConfig(
-    mode = FRAMEWORK_SECURITY_MODE,
+    mode = DELEGATED_SECURITY_MODE,
     protocol = HTTP,
     hostname = "localhost",
     port = 9455,
     apiKey = UUID.randomUUID().toString,
     apiSecret = "00000noAPISecret00000000",
-    appId = None
+    appId = Some(UUID.randomUUID())
   )
 
   lazy val defaultConfig: GestaltSecurityConfig = try {
-    Logger.info("attempting to determine GestaltSecurityConfig for framework authentication controller")
+    Logger.info("attempting to determine GestaltSecurityConfig for delegated authentication controller")
     GestaltSecurityConfig.getSecurityConfig
       .filter(config => config.mode == FRAMEWORK_SECURITY_MODE && config.isWellDefined)
       .getOrElse {
@@ -37,4 +38,5 @@ class GestaltFrameworkSecurityModule extends AbstractModule {
       Logger.error(s"caught exception trying to get security config: ${t.getMessage}. Will fallback to localhost.",t)
       FALLBACK_SECURITY_CONFIG
   }
+
 }
