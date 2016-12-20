@@ -1,20 +1,17 @@
 package com.galacticfog.gestalt.security.play.silhouette.authorization
 
-import com.galacticfog.gestalt.security.play.silhouette.AuthAccount
-import com.mohiva.play.silhouette.api.Authorization
-import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
+import com.galacticfog.gestalt.security.play.silhouette.GestaltAuthIdentity
+import com.mohiva.play.silhouette.api.{Authenticator, Authorization}
 import play.api.i18n.Messages
-import play.api.mvc.RequestHeader
-import scala.concurrent.Future
 import play.api.mvc.Request
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-
-case class hasGrant(grantName: String) extends Authorization[AuthAccount, DummyAuthenticator] {
+case class hasGrant[A <: Authenticator](grantName: String)
+  extends Authorization[GestaltAuthIdentity, A] {
   
-  override def isAuthorized[B](identity: AuthAccount, authenticator: DummyAuthenticator)(
-      implicit request: Request[B], messages: Messages): Future[Boolean] = {
-    Future( identity.rights.exists(_.grantName == grantName) )
+  override def isAuthorized[B]( identity: GestaltAuthIdentity, authenticator: A )
+                              ( implicit request: Request[B], messages: Messages ): Future[Boolean] = {
+    Future.successful( identity.rights.exists(_.grantName == grantName) )
   }
   
 }

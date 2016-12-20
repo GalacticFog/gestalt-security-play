@@ -5,27 +5,25 @@ import java.util.UUID
 
 import com.galacticfog.gestalt.security.api.GestaltToken.ACCESS_TOKEN
 import com.galacticfog.gestalt.security.api._
-import com.mohiva.play.silhouette.api.services.AuthenticatorService
-import com.mohiva.play.silhouette.impl.authenticators.{DummyAuthenticatorService, DummyAuthenticator}
+import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
 import mockws.MockWS
 import org.joda.time.DateTime
-import org.specs2.execute
-import org.specs2.matcher.ValueCheck
 import org.specs2.mock.Mockito
 import org.specs2.mutable._
 import org.specs2.runner._
 import org.junit.runner._
+import play.api.i18n.MessagesApi
 import play.api.libs.json.Json
 import play.api.mvc.RequestHeader
 import play.api.test._
 import play.mvc.Http.HeaderNames
+import play.api.libs.concurrent.Execution.Implicits._
+
 import scala.concurrent.Future
 import play.api.mvc._
 import play.api.mvc.Action
 import play.api.mvc.Results._
 import play.api.test.Helpers._
-
-import scala.concurrent.ExecutionContext.global
 
 @RunWith(classOf[JUnitRunner])
 class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with DefaultAwaitTimeout {
@@ -37,16 +35,14 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
     port = 1234,
     apiKey = "someKey",
     apiSecret = "someSecret",
-    appId = Some(UUID.randomUUID)
+    appId = None
   )
 
   "GestaltFrameworkSecuredController" should {
 
-    class TestController(config: Option[GestaltSecurityConfig] = None) extends GestaltFrameworkSecuredController[DummyAuthenticator] {
-
-      override def getSecurityConfig: Option[GestaltSecurityConfig] = config
-
-      override def getAuthenticator: AuthenticatorService[DummyAuthenticator] = new DummyAuthenticatorService
+    class TestController(mApi: MessagesApi,
+                         env: GestaltFrameworkSecurityEnvironment[DummyAuthenticator])
+      extends GestaltFrameworkSecuredController[DummyAuthenticator](mApi, env) {
 
       // define a function based on the request header
       def inSitu() = GestaltFrameworkAuthAction({rh: RequestHeader => Some(rh.path)}) {
@@ -131,18 +127,17 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
     }
 
     // requires WithApplication to create wsclient
-    "allow easy specification of config via override" in new WithApplication {
-      val controller = new TestController(Some(testConfig))
-      controller.securityConfig.protocol   must_== testConfig.protocol
-      controller.securityConfig.hostname   must_== testConfig.hostname
-      controller.securityConfig.port       must_== testConfig.port
-      controller.securityConfig.apiKey     must_== testConfig.apiKey
-      controller.securityConfig.apiSecret  must_== testConfig.apiSecret
-      controller.securityConfig.appId      must_== testConfig.appId
+    "allow easy specification of config via constructor injection" in new WithApplication {
+      val controller = app.injector.instanceOf[TestController]
+      controller.securityClient.protocol   must_== testConfig.protocol
+      controller.securityClient.hostname   must_== testConfig.hostname
+      controller.securityClient.port       must_== testConfig.port
+      controller.securityClient.creds.asInstanceOf[GestaltBasicCredentials].username  must_== testConfig.apiKey
+      controller.securityClient.creds.asInstanceOf[GestaltBasicCredentials].password  must_== testConfig.apiSecret
     }
 
     "return WWW-Authenticate header on 401 (root)" in new WithApplication {
-      val controller = new TestController()
+      val controller = app.injector.instanceOf[TestController]
       val realm = s"${controller.securityClient.protocol}://${controller.securityClient.hostname}:${controller.securityClient.port}/root/oauth/issue"
       val result = await(controller.hello().apply(FakeRequest()))
       result.header.status must_== 401
@@ -153,7 +148,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
     }
 
     "return WWW-Authenticate header on 401 (FQON)" in new WithApplication {
-      val controller = new TestController()
+      val controller = app.injector.instanceOf[TestController]
       val fqon = "galacticfog"
       val realm = s"${controller.securityClient.protocol}://${controller.securityClient.hostname}:${controller.securityClient.port}/$fqon/oauth/issue"
       val result = await(controller.fromArgs(fqon).apply(FakeRequest()))
@@ -167,9 +162,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
     val fakeApplication = FakeApplication()
 
     "return WWW-Authenticate header on 401 (realm-override)" in new WithApplication() {
-      val controller = new TestController() {
-        override def securityRealmOverride(org: String): Option[String] = Some("https://realm.override:9455")
-      }
+      val controller = app.injector.instanceOf[TestController]
       val realm = "https://realm.override:9455"
       val result = await(controller.hello().apply(FakeRequest()))
       result.header.status must_== 401
@@ -180,7 +173,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
     }
 
     "return WWW-Authenticate header on 401 (UUID)" in new WithApplication {
-      val controller = new TestController()
+      val controller = app.injector.instanceOf[TestController]
       val orgId = UUID.randomUUID()
       val realm = s"${controller.securityClient.protocol}://${controller.securityClient.hostname}:${controller.securityClient.port}/orgs/$orgId/oauth/issue"
       val result = await(controller.aUUID(orgId).apply(FakeRequest()))
@@ -219,7 +212,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
         password = "FQ1UeAvh/xWIwU7qZCA108A2C7ZqSx+8faeIOoYT"
       )
       val request = FakeRequest("GET", "securedEndpoint", FakeHeaders(
-        Seq(AUTHORIZATION -> Seq(creds.headerValue))
+        Seq(AUTHORIZATION -> creds.headerValue)
       ), AnyContentAsEmpty)
       val ocRequest = OrgContextRequest(None,request)
       val frameworkProvider = new GestaltFrameworkAuthProvider(client)
@@ -260,7 +253,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       val client = GestaltSecurityClient(ws, HTTP, securityHostname, securityPort, NOT_USED, NOT_USED)
       val creds = GestaltBearerCredentials(token.toString)
       val request = FakeRequest("GET", "securedEndpoint", FakeHeaders(
-        Seq(AUTHORIZATION -> Seq(creds.headerValue))
+        Seq(AUTHORIZATION -> creds.headerValue)
       ), AnyContentAsEmpty)
       val ocRequest = OrgContextRequest(Some("root"),request)
       val frameworkProvider = new GestaltFrameworkAuthProvider(client)
@@ -302,7 +295,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       val client = GestaltSecurityClient(ws, HTTP, securityHostname, securityPort, NOT_USED, NOT_USED)
       val creds = GestaltBearerCredentials(token.toString)
       val request = FakeRequest("GET", "securedEndpoint", FakeHeaders(
-        Seq(AUTHORIZATION -> Seq(s"token=${token.id}"))
+        Seq(AUTHORIZATION -> s"token=${token.id}")
       ), AnyContentAsEmpty)
       val ocRequest = OrgContextRequest(Some("root"),request)
       val frameworkProvider = new GestaltFrameworkAuthProvider(client)
@@ -322,7 +315,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       val client = GestaltSecurityClient(ws, HTTP, securityHostname, securityPort, NOT_USED, NOT_USED)
       val creds = GestaltBearerCredentials(token.toString)
       val request = FakeRequest("GET", "securedEndpoint", FakeHeaders(
-        Seq(AUTHORIZATION -> Seq(creds.headerValue))
+        Seq(AUTHORIZATION -> creds.headerValue)
       ), AnyContentAsEmpty)
       val ocRequest = OrgContextRequest(Some("root"),request)
       val frameworkProvider = new GestaltFrameworkAuthProvider(client)
@@ -340,7 +333,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       val client = GestaltSecurityClient(ws, HTTP, securityHostname, securityPort, NOT_USED, NOT_USED)
       val creds = GestaltBearerCredentials("not-a-valid-token")
       val request = FakeRequest("GET", "securedEndpoint", FakeHeaders(
-        Seq(AUTHORIZATION -> Seq(creds.headerValue))
+        Seq(AUTHORIZATION -> creds.headerValue)
       ), AnyContentAsEmpty)
       val ocRequest = OrgContextRequest(Some("root"),request)
       val frameworkProvider = new GestaltFrameworkAuthProvider(client)

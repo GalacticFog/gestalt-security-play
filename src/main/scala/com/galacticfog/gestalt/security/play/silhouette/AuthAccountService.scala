@@ -6,8 +6,7 @@ import com.google.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api.LoginInfo
 import com.mohiva.play.silhouette.api.services.IdentityService
 
-@Singleton
-class AccountServiceImpl @Inject()()(implicit ec: ExecutionContext) extends IdentityService[AuthAccount] {
+class AccountServiceImpl()(implicit ec: ExecutionContext) extends IdentityService[AuthAccount] {
   override def retrieve(loginInfo: LoginInfo): Future[Option[AuthAccount]] = Future {
     loginInfo match {
       case glo: GestaltLoginInfo =>
@@ -19,8 +18,7 @@ class AccountServiceImpl @Inject()()(implicit ec: ExecutionContext) extends Iden
   }
 }
 
-@Singleton
-class AccountServiceImplWithCreds @Inject()()(implicit ec: ExecutionContext) extends IdentityService[AuthAccountWithCreds] {
+class AccountServiceImplWithCreds()(implicit ec: ExecutionContext) extends IdentityService[AuthAccountWithCreds] {
   override def retrieve(loginInfo: LoginInfo): Future[Option[AuthAccountWithCreds]] = Future {
     loginInfo match {
       case glo: GestaltLoginInfoWithCreds =>

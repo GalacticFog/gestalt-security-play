@@ -4,28 +4,27 @@ import java.util.UUID
 
 import com.galacticfog.gestalt.security.api._
 import com.galacticfog.gestalt.security.play.silhouette.test.FakeGestaltSecurityEnvironment
-import com.google.inject.Inject
-import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
-import org.junit.runner._
 import org.specs2.mock.Mockito
-import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
+import org.junit.runner._
 import play.api.i18n.MessagesApi
-import play.api.mvc.RequestHeader
-import play.api.test.Helpers._
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.mvc._
 import play.api.test._
-import play.test.WithApplication
+import play.api.test.Helpers._
 import play.api.libs.concurrent.Execution.Implicits._
+import play.api.inject.bind
 
 import scala.concurrent.Future
+import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
+import play.api.Application
 
 @RunWith(classOf[JUnitRunner])
-class FakeSecuredRequestSpec extends Specification with Mockito with FutureAwaits with DefaultAwaitTimeout {
+class FakeFrameworkRequestSpec extends PlaySpecification with Mockito {
 
-  class TestController @Inject()(messagesApi: MessagesApi,
-                                 securityClient: GestaltSecurityClient,
-                                 env: GestaltSecurityEnvironment[AuthAccountWithCreds,DummyAuthenticator])
-    extends GestaltFrameworkSecuredController[DummyAuthenticator](messagesApi, securityClient, env) {
+  class TestController(messagesApi: MessagesApi,
+                       env: GestaltFrameworkSecurityEnvironment[DummyAuthenticator])
+    extends GestaltFrameworkSecuredController[DummyAuthenticator](messagesApi, env) {
 
     def Authenticate() = new GestaltFrameworkAuthActionBuilderUUID(Some({rh: RequestHeader => None: Option[UUID]}))
     def Authenticate(fqon: String) = new GestaltFrameworkAuthActionBuilder(Some({rh: RequestHeader => Some(fqon)}))
@@ -44,18 +43,18 @@ class FakeSecuredRequestSpec extends Specification with Mockito with FutureAwait
 
   def uuid() = UUID.randomUUID()
 
-  def dummyAuthAccount(userInfo: Map[String,String] = Map(), groups: Seq[ResourceLink] = Seq(), orgId: UUID = uuid()): GestaltAuthResponse = {
+  def dummyAuthAccount(groups: Seq[ResourceLink] = Seq(), orgId: UUID = uuid()): GestaltAuthResponse = {
     val defaultStr = "foo"
     val directory = GestaltDirectory(uuid(), defaultStr, None, uuid())
     val account = GestaltAccount(
-      userInfo.get("id") map (UUID.fromString(_)) getOrElse uuid(),
-      userInfo.getOrElse("username", defaultStr),
-      userInfo.getOrElse("firstName", defaultStr),
-      userInfo.getOrElse("lastName", defaultStr),
-      userInfo.get("description") orElse Option(defaultStr),
-      userInfo.get("email") orElse Option(defaultStr),
-      userInfo.get("phoneNumber") orElse Option(defaultStr),
-      directory
+      id = uuid(),
+      username = defaultStr,
+      firstName = defaultStr,
+      lastName = defaultStr,
+      description = Option(defaultStr),
+      email = Option(defaultStr),
+      phoneNumber = Option(defaultStr),
+      directory = directory
     )
     GestaltAuthResponse(
       account = account,
@@ -70,36 +69,44 @@ class FakeSecuredRequestSpec extends Specification with Mockito with FutureAwait
     GestaltAPICredentials.getCredentials(header).get
   }
 
-  "FakeGestaltSecurityEnvironment" should {
-
+  abstract class FakeSecurity extends WithApplication {
     val creds = dummyCreds()
     val authResponse = dummyAuthAccount()
-    val fakeEnv = FakeGestaltSecurityEnvironment[DummyAuthenticator](Seq(
-      creds -> authResponse
-    ), mock[GestaltSecurityClient])
+    val fakeEnv = FakeGestaltSecurityEnvironment[DummyAuthenticator](
+      identities = Seq( creds -> authResponse ),
+      config = mock[GestaltSecurityConfig],
+      client = mock[GestaltSecurityClient]
+    )
 
-    "support faked authorization" in new WithApplication {
+    override implicit def implicitApp: Application = {
+      new GuiceApplicationBuilder()
+        .overrides(bind[GestaltSecurityEnvironment[AuthAccountWithCreds,DummyAuthenticator]].toInstance(fakeEnv))
+        .build
+    }
+  }
+
+  "FakeGestaltSecurityEnvironment" should {
+
+
+
+    "support faked authorization" in new FakeSecurity {
       val request = FakeRequest().withHeaders(AUTHORIZATION -> creds.headerValue)
-      val controller = new TestController {
-        override val env = fakeEnv
-      }
+      val controller = app.injector.instanceOf[TestController]
       val result = controller.hello(request)
 
       status(result) must equalTo(OK)
       contentAsString(result) must startWith("hello, " + authResponse.account.username)
     }
 
-    "401 if no registered header even during faked authorization" in new WithApplication {
+    "401 if no registered header even during faked authorization" in new FakeSecurity {
       val request = FakeRequest() // no .withHeaders(AUTHORIZATION -> creds.headerValue)
-      val controller = new TestController {
-        override val env = fakeEnv
-      }
+      val controller = app.injector.instanceOf[TestController]
       val result = controller.hello(request)
 
       status(result) must equalTo(UNAUTHORIZED)
     }
 
-    "support mocked GestaltSecurityClient" in new WithApplication {
+    "support mocked GestaltSecurityClient" in new FakeSecurity {
       import com.galacticfog.gestalt.security.api.json.JsonImports.orgFormat
       val org = GestaltOrg(UUID.randomUUID(), "some-org", fqon = "some-org", None, None, Seq())
       val mc1 = mock[GestaltSecurityClient]
@@ -108,10 +115,7 @@ class FakeSecuredRequestSpec extends Specification with Mockito with FutureAwait
       // this sucks... testers should have to know the REST API, but GestaltOrg.getCurrentOrg is a static method
       mc2.get[GestaltOrg]("orgs/current") returns Future.successful(org)
       val request = FakeRequest().withHeaders(AUTHORIZATION -> creds.headerValue)
-      val controller = new TestController {
-        override val env = fakeEnv
-        override implicit val securityClient: GestaltSecurityClient = mc1
-      }
+      val controller = app.injector.instanceOf[TestController]
       val result = controller.someDelegatedCallToSecurity(request)
 
       status(result) must equalTo(OK)

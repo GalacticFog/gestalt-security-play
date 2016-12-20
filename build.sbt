@@ -38,15 +38,16 @@ shellPrompt in ThisBuild := { state => "\033[0;36m" + Project.extract(state).cur
 
 libraryDependencies ++= Seq(
   "com.galacticfog" %% "gestalt-security-sdk-scala" % "2.3.0-SNAPSHOT",
-  "com.mohiva" %% "play-silhouette" 				  % "3.0.5",
-  "com.mohiva" %% "play-silhouette-testkit" 		  % "3.0.5",
-  "com.typesafe.play" % "play-json_2.11" 			  % "2.4.3",
-  "com.typesafe.play" % "play-test_2.11" 			  % "2.4.3"  % "test",
-  "de.leanovate.play-mockws" % "play-mockws_2.11"     % "2.4.2"  % "test",
-  "org.specs2" %% "specs2-core" 				      % "3.8.3"  % "test",
-  "org.specs2" %% "specs2-junit"				      % "3.8.3"  % "test",
-  "org.specs2" %% "specs2-mock" 				      % "3.8.3"  % "test",
-  "org.specs2" %% "specs2-matcher-extra" 		      % "3.8.3"  % "test"
+  "com.typesafe.play" %% "play-json"                % "2.4.6",
+  "com.typesafe.play" %% "play-test"                % "2.4.6" % Test,
+  "com.typesafe.play" %% "play-specs2"              % "2.4.6" % Test,
+  "com.mohiva" %% "play-silhouette"                 % "3.0.5",
+  "com.mohiva" %% "play-silhouette-testkit"         % "3.0.5",
+  "de.leanovate.play-mockws" %% "play-mockws"       % "2.4.2" % Test,
+  "org.specs2" %% "specs2-core"                     % "3.8.3" % Test,
+  "org.specs2" %% "specs2-junit"                    % "3.8.3" % Test,
+  "org.specs2" %% "specs2-mock"                     % "3.8.3" % Test,
+  "org.specs2" %% "specs2-matcher-extra"            % "3.8.3" % Test
 )
 
 

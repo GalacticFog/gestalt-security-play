@@ -2,24 +2,25 @@ package com.galacticfog.gestalt.security.play.silhouette
 
 import java.util.UUID
 
-import com.galacticfog.gestalt.security.api.{GestaltDirectory, GestaltRightGrant, GestaltAccount}
-import com.galacticfog.gestalt.security.play.silhouette.authorization.{matchesValue, hasValue, matchesGrant, hasGrant}
+import com.galacticfog.gestalt.security.api.{GestaltAccount, GestaltDirectory, GestaltRightGrant}
+import com.galacticfog.gestalt.security.play.silhouette.authorization.{hasGrant, hasValue, matchesGrant, matchesValue}
+import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
 import org.junit.runner._
 import org.specs2.mock.Mockito
 import org.specs2.mutable._
 import org.specs2.runner._
-import play.api.i18n.Lang
-import play.api.mvc.RequestHeader
-import play.api.test.WithApplication
+import play.api.i18n.Messages
+import play.api.mvc.{AnyContent, Request}
+import play.api.test.PlaySpecification
 
 
 @RunWith(classOf[JUnitRunner])
-class GrantSpecs extends Specification with Mockito with Tables {
+class GrantSpecs extends PlaySpecification with Mockito with Tables {
 
   // Silhouette Authorization.isAuthorized has implicit args for the following
   // Our authorizers don't need them, so mocks will suffice
-  implicit val requestHeader = mock[RequestHeader]
-  implicit val lang = mock[Lang]
+  implicit val request = mock[Request[AnyContent]]
+  implicit val messages = mock[Messages]
 
   def makeAuth(rights: Seq[GestaltRightGrant]) = AuthAccount(
     account = GestaltAccount(id = UUID.randomUUID, username = "john", "John", "Doe", email = Some("jdoe@gmail.com"), phoneNumber = None, description = None, directory = GestaltDirectory(id = UUID.randomUUID(), "", None, UUID.randomUUID())),
@@ -31,18 +32,20 @@ class GrantSpecs extends Specification with Mockito with Tables {
   def rightGrant(rightName: String, value: String) = GestaltRightGrant(id = UUID.randomUUID, rightName, Some(value), appId = UUID.randomUUID)
   def rightGrant(rightName: String) = GestaltRightGrant(id = UUID.randomUUID, rightName, None, appId = UUID.randomUUID)
 
+  def dummyAuth = mock[DummyAuthenticator]
+
   "hasGrant" should {
 
     "match when solely present with no value" in {
       val grantName = "testGrant"
       val oneRight = makeAuth(Seq(rightGrant(grantName, None)))
-      hasGrant(grantName).isAuthorized(oneRight) must beTrue
+      await(hasGrant(grantName).isAuthorized(oneRight, dummyAuth)) must beTrue
     }
 
     "match when solely present with Some value" in {
       val grantName = "testGrant"
       val oneRight = makeAuth(Seq(rightGrant(grantName, Some("value"))))
-      hasGrant(grantName).isAuthorized(oneRight) must beTrue
+      await(hasGrant(grantName).isAuthorized(oneRight, dummyAuth)) must beTrue
     }
 
     "match when present amongst others" in {
@@ -52,12 +55,12 @@ class GrantSpecs extends Specification with Mockito with Tables {
         rightGrant("anotherGrant",None),
         rightGrant("thirdGrant",None)
       ))
-      hasGrant(grantName).isAuthorized(manyRights) must beTrue
+      await(hasGrant(grantName).isAuthorized(manyRights, dummyAuth)) must beTrue
     }
 
     "not match when none present" in {
       val noRights = makeAuth(Seq())
-      hasGrant("testGrant").isAuthorized(noRights) must beFalse
+      await(hasGrant("testGrant").isAuthorized(noRights, dummyAuth)) must beFalse
     }
 
     "not match when not present" in {
@@ -65,7 +68,7 @@ class GrantSpecs extends Specification with Mockito with Tables {
         rightGrant("rightOne", None),
         rightGrant("rightTwo", None)
       ))
-      hasGrant("rightWrong").isAuthorized(someRights) must beFalse
+      await(hasGrant("rightWrong").isAuthorized(someRights, dummyAuth)) must beFalse
     }
 
   }
@@ -74,12 +77,12 @@ class GrantSpecs extends Specification with Mockito with Tables {
 
     "match when has named value" in {
       val right = makeAuth(Seq(rightGrant("foo",Some("bar"))))
-      hasValue("foo","bar").isAuthorized(right) must beTrue
+      await(hasValue("foo","bar").isAuthorized(right, dummyAuth)) must beTrue
     }
 
     "not match when named value is None" in {
       val right = makeAuth(Seq(rightGrant("foo",None)))
-      hasValue("foo","bar").isAuthorized(right) must beFalse
+      await(hasValue("foo","bar").isAuthorized(right, dummyAuth)) must beFalse
     }
 
   }
@@ -88,31 +91,31 @@ class GrantSpecs extends Specification with Mockito with Tables {
     "match when values matches w.r.t. matcher" in {
       val n = "foo"
       val right = makeAuth(Seq(rightGrant(n,Some("BAR"))))
-      matchesValue(n,"bar"){_ equalsIgnoreCase _}.isAuthorized(right) must beTrue
+      await(matchesValue(n,"bar"){_ equalsIgnoreCase _}.isAuthorized(right, dummyAuth)) must beTrue
     }
 
     "not match when values don't match w.r.t matcher" in {
       val n = "foo"
       val v = "bar"
       val right = makeAuth(Seq(rightGrant(n,Some(v))))
-      matchesValue(n,v){(_,_) => false}.isAuthorized(right) must beFalse
+      await(matchesValue(n,v){(_,_) => false}.isAuthorized(right, dummyAuth)) must beFalse
     }
 
     "not match when name doesn't match" in {
       val right = makeAuth(Seq(rightGrant("foo1",Some("bar"))))
-      matchesValue("foo2","bar"){(_,_) => true}.isAuthorized(right) must beFalse
+      await(matchesValue("foo2","bar"){(_,_) => true}.isAuthorized(right, dummyAuth)) must beFalse
     }
 
     "not match when value doesn't exist" in {
       val right = makeAuth(Seq(rightGrant("foo",None)))
-      matchesValue("foo","bar"){(_,_) => true}.isAuthorized(right) must beFalse
+      await(matchesValue("foo","bar"){(_,_) => true}.isAuthorized(right, dummyAuth)) must beFalse
     }
   }
 
 
   "matchesGrant" should {
 
-    def testGrant(grantName: String, test: String) = matchesGrant(test).isAuthorized(makeAuth(Seq(rightGrant(grantName))))
+    def testGrant(grantName: String, test: String) = await(matchesGrant(test).isAuthorized(makeAuth(Seq(rightGrant(grantName))), dummyAuth))
 
     "match when exact" in {
       "grant"         | "test"        |>
