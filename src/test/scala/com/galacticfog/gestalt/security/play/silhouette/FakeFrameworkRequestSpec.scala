@@ -4,6 +4,7 @@ import java.util.UUID
 
 import com.galacticfog.gestalt.security.api._
 import com.galacticfog.gestalt.security.play.silhouette.test.FakeGestaltSecurityEnvironment
+import com.google.inject.Inject
 import org.specs2.mock.Mockito
 import org.specs2.runner.JUnitRunner
 import org.junit.runner._
@@ -19,27 +20,27 @@ import scala.concurrent.Future
 import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
 import play.api.Application
 
-@RunWith(classOf[JUnitRunner])
-class FakeFrameworkRequestSpec extends PlaySpecification with Mockito {
+class TestController @Inject() ( messagesApi: MessagesApi,
+                      env: GestaltFrameworkSecurityEnvironment[DummyAuthenticator] )
+  extends GestaltFrameworkSecuredController[DummyAuthenticator](messagesApi, env) {
 
-  class TestController(messagesApi: MessagesApi,
-                       env: GestaltFrameworkSecurityEnvironment[DummyAuthenticator])
-    extends GestaltFrameworkSecuredController[DummyAuthenticator](messagesApi, env) {
+  def Authenticate() = new GestaltFrameworkAuthActionBuilderUUID(Some({rh: RequestHeader => None: Option[UUID]}))
+  def Authenticate(fqon: String) = new GestaltFrameworkAuthActionBuilder(Some({rh: RequestHeader => Some(fqon)}))
+  def Authenticate(org: UUID) = new GestaltFrameworkAuthActionBuilderUUID(Some({rh: RequestHeader => Some(org)}))
 
-    def Authenticate() = new GestaltFrameworkAuthActionBuilderUUID(Some({rh: RequestHeader => None: Option[UUID]}))
-    def Authenticate(fqon: String) = new GestaltFrameworkAuthActionBuilder(Some({rh: RequestHeader => Some(fqon)}))
-    def Authenticate(org: UUID) = new GestaltFrameworkAuthActionBuilderUUID(Some({rh: RequestHeader => Some(org)}))
+  def hello = Authenticate() { securedRequest =>
+    Ok(s"hello, ${securedRequest.identity.account.username}. Your credentials were\n${securedRequest.identity.creds}")
+  }
 
-    def hello = Authenticate() { securedRequest =>
-      Ok(s"hello, ${securedRequest.identity.account.username}. Your credentials were\n${securedRequest.identity.creds}")
-    }
-
-    def someDelegatedCallToSecurity = Authenticate().async { request =>
-      GestaltOrg.getCurrentOrg()(securityClient.withCreds(request.identity.creds)) map { org =>
-        Ok(s"credentials validate against ${org.fqon}")
-      }
+  def someDelegatedCallToSecurity = Authenticate().async { request =>
+    GestaltOrg.getCurrentOrg()(securityClient.withCreds(request.identity.creds)) map { org =>
+      Ok(s"credentials validate against ${org.fqon}")
     }
   }
+}
+
+@RunWith(classOf[JUnitRunner])
+class FakeFrameworkRequestSpec extends PlaySpecification with Mockito {
 
   def uuid() = UUID.randomUUID()
 
@@ -70,9 +71,9 @@ class FakeFrameworkRequestSpec extends PlaySpecification with Mockito {
   }
 
   abstract class FakeSecurity extends WithApplication {
-    val creds = dummyCreds()
-    val authResponse = dummyAuthAccount()
-    val fakeEnv = FakeGestaltSecurityEnvironment[DummyAuthenticator](
+    lazy val creds = dummyCreds()
+    lazy val authResponse = dummyAuthAccount()
+    lazy val fakeEnv = FakeGestaltSecurityEnvironment[DummyAuthenticator](
       identities = Seq( creds -> authResponse ),
       config = mock[GestaltSecurityConfig],
       client = mock[GestaltSecurityClient]
@@ -86,8 +87,6 @@ class FakeFrameworkRequestSpec extends PlaySpecification with Mockito {
   }
 
   "FakeGestaltSecurityEnvironment" should {
-
-
 
     "support faked authorization" in new FakeSecurity {
       val request = FakeRequest().withHeaders(AUTHORIZATION -> creds.headerValue)

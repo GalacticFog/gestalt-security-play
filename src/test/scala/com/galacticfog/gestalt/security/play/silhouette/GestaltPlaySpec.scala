@@ -5,6 +5,9 @@ import java.util.UUID
 
 import com.galacticfog.gestalt.security.api.GestaltToken.ACCESS_TOKEN
 import com.galacticfog.gestalt.security.api._
+import com.galacticfog.gestalt.security.api.json.JsonImports.authFormat
+import com.galacticfog.gestalt.security.api.json.JsonImports.tokenIntrospectionResponse
+import com.google.inject.Inject
 import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
 import mockws.MockWS
 import org.joda.time.DateTime
@@ -25,6 +28,92 @@ import play.api.mvc.Action
 import play.api.mvc.Results._
 import play.api.test.Helpers._
 
+class TestSecuredController @Inject() ( mApi: MessagesApi,
+                                        env: GestaltFrameworkSecurityEnvironment[DummyAuthenticator] )
+  extends GestaltFrameworkSecuredController[DummyAuthenticator](mApi, env) {
+
+  // define a function based on the request header
+  def inSitu() = GestaltFrameworkAuthAction({rh: RequestHeader => Some(rh.path)}) {
+    securedRequest => Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds)
+  }
+
+  // like above, but async+json
+  def inSituJsonAsync() = GestaltFrameworkAuthAction({rh: RequestHeader => Some(rh.path)}).async(parse.json) {
+    securedRequest => Future{Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds)}
+  }
+
+  // just pass a string
+  def fromArgs(fqon: String) = GestaltFrameworkAuthAction(Some(fqon)) {
+    securedRequest => Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds + " on org " + fqon)
+  }
+
+  // just pass a string, async+json
+  def asyncJson() = GestaltFrameworkAuthAction(Some("test.org")).async(parse.json) {
+    securedRequest => Future{Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds)}
+  }
+
+  // how about a UUID? we got that covered! this authenticates against /orgs/:orgId/auth
+  def aUUID(orgId: UUID) = GestaltFrameworkAuthAction(Some(orgId)).async {
+    securedRequest => Future{Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds)}
+  }
+
+  def hello() = GestaltFrameworkAuthAction(Option.empty[String]) { securedRequest =>
+    Ok("hello")
+  }
+
+  // how about some authenticated methods with a credential-passthrough call to security?
+  def createOrgPassthrough(parentOrgId: UUID) = GestaltFrameworkAuthAction(Some(parentOrgId)).async(parse.json) {
+    securedRequest =>
+      val account = securedRequest.identity.account
+      val creds = securedRequest.identity.creds
+      GestaltOrg.createSubOrg(parentOrgId = parentOrgId, GestaltOrgCreate("someNewOrgName"))(securityClient.withCreds(creds)) map {
+        // do what you were going to do
+        newOrg => Created(Json.obj(
+          "newAccountId" -> newOrg.id,
+          "createdBy" -> account.id
+        ))
+      }
+  }
+
+  def deleteOrgPassthrough(orgId: UUID) = GestaltFrameworkAuthAction(Some(orgId)).async(parse.json) {
+    securedRequest =>
+      val account = securedRequest.identity.account
+      val creds = securedRequest.identity.creds
+      GestaltOrg.deleteOrg(orgId)(securityClient.withCreds(creds)) map {
+        // do what you were going to do
+        newOrg => Ok(Json.obj(
+          "deletedOrgId" -> orgId,
+          "deletedBy" -> account.id
+        ))
+      }
+  }
+
+  def createAccountPassthrough(parentOrgId: UUID) = GestaltFrameworkAuthAction(Some(parentOrgId)).async(parse.json) {
+    securedRequest =>
+      val account = securedRequest.identity.account
+      val someExistingGroupId = UUID.randomUUID()
+      val creds = securedRequest.identity.creds
+      GestaltOrg.createAccount(orgId = parentOrgId, GestaltAccountCreateWithRights(
+        username = "bsmith",
+        firstName = "bob",
+        lastName = "smith",
+        email = Some("bsmith@myorg"),
+        phoneNumber = Some("505-867-5309"),
+        credential = GestaltPasswordCredential("bob's password"),
+        groups = Some(Seq(someExistingGroupId)),
+        rights = Some(Seq(GestaltGrantCreate("freedom")))
+      ))(securityClient.withCreds(creds)) map {
+        // do what you were going to do
+        newOrg => Created(Json.obj(
+          "newAccountId" -> newOrg.id,
+          "createdBy" -> account.id,
+          "authenticatedIn" -> securedRequest.identity.authenticatingOrgId
+        ))
+      }
+  }
+
+}
+
 @RunWith(classOf[JUnitRunner])
 class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with DefaultAwaitTimeout {
 
@@ -40,95 +129,9 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
 
   "GestaltFrameworkSecuredController" should {
 
-    class TestController(mApi: MessagesApi,
-                         env: GestaltFrameworkSecurityEnvironment[DummyAuthenticator])
-      extends GestaltFrameworkSecuredController[DummyAuthenticator](mApi, env) {
-
-      // define a function based on the request header
-      def inSitu() = GestaltFrameworkAuthAction({rh: RequestHeader => Some(rh.path)}) {
-        securedRequest => Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds)
-      }
-
-      // like above, but async+json
-      def inSituJsonAsync() = GestaltFrameworkAuthAction({rh: RequestHeader => Some(rh.path)}).async(parse.json) {
-        securedRequest => Future{Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds)}
-      }
-
-      // just pass a string
-      def fromArgs(fqon: String) = GestaltFrameworkAuthAction(Some(fqon)) {
-        securedRequest => Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds + " on org " + fqon)
-      }
-
-      // just pass a string, async+json
-      def asyncJson() = GestaltFrameworkAuthAction(Some("test.org")).async(parse.json) {
-        securedRequest => Future{Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds)}
-      }
-
-      // how about a UUID? we got that covered! this authenticates against /orgs/:orgId/auth
-      def aUUID(orgId: UUID) = GestaltFrameworkAuthAction(Some(orgId)).async {
-        securedRequest => Future{Ok(securedRequest.identity.account.id.toString + " authenticated with username " + securedRequest.identity.creds)}
-      }
-
-      def hello() = GestaltFrameworkAuthAction(Option.empty[String]) { securedRequest =>
-        Ok("hello")
-      }
-
-      // how about some authenticated methods with a credential-passthrough call to security?
-      def createOrgPassthrough(parentOrgId: UUID) = GestaltFrameworkAuthAction(Some(parentOrgId)).async(parse.json) {
-        securedRequest =>
-          val account = securedRequest.identity.account
-          val creds = securedRequest.identity.creds
-          GestaltOrg.createSubOrg(parentOrgId = parentOrgId, GestaltOrgCreate("someNewOrgName"))(securityClient.withCreds(creds)) map {
-            // do what you were going to do
-            newOrg => Created(Json.obj(
-              "newAccountId" -> newOrg.id,
-              "createdBy" -> account.id
-            ))
-          }
-      }
-
-      def deleteOrgPassthrough(orgId: UUID) = GestaltFrameworkAuthAction(Some(orgId)).async(parse.json) {
-        securedRequest =>
-          val account = securedRequest.identity.account
-          val creds = securedRequest.identity.creds
-          GestaltOrg.deleteOrg(orgId)(securityClient.withCreds(creds)) map {
-              // do what you were going to do
-            newOrg => Ok(Json.obj(
-              "deletedOrgId" -> orgId,
-              "deletedBy" -> account.id
-            ))
-          }
-      }
-
-      def createAccountPassthrough(parentOrgId: UUID) = GestaltFrameworkAuthAction(Some(parentOrgId)).async(parse.json) {
-        securedRequest =>
-          val account = securedRequest.identity.account
-          val someExistingGroupId = UUID.randomUUID()
-          val creds = securedRequest.identity.creds
-          GestaltOrg.createAccount(orgId = parentOrgId, GestaltAccountCreateWithRights(
-            username = "bsmith",
-            firstName = "bob",
-            lastName = "smith",
-            email = Some("bsmith@myorg"),
-            phoneNumber = Some("505-867-5309"),
-            credential = GestaltPasswordCredential("bob's password"),
-            groups = Some(Seq(someExistingGroupId)),
-            rights = Some(Seq(GestaltGrantCreate("freedom")))
-          ))(securityClient.withCreds(creds)) map {
-              // do what you were going to do
-            newOrg => Created(Json.obj(
-              "newAccountId" -> newOrg.id,
-              "createdBy" -> account.id,
-              "authenticatedIn" -> securedRequest.identity.authenticatingOrgId
-            ))
-          }
-      }
-
-    }
-
     // requires WithApplication to create wsclient
     "allow easy specification of config via constructor injection" in new WithApplication {
-      val controller = app.injector.instanceOf[TestController]
+      val controller = app.injector.instanceOf[TestSecuredController]
       controller.securityClient.protocol   must_== testConfig.protocol
       controller.securityClient.hostname   must_== testConfig.hostname
       controller.securityClient.port       must_== testConfig.port
@@ -137,7 +140,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
     }
 
     "return WWW-Authenticate header on 401 (root)" in new WithApplication {
-      val controller = app.injector.instanceOf[TestController]
+      val controller = app.injector.instanceOf[TestSecuredController]
       val realm = s"${controller.securityClient.protocol}://${controller.securityClient.hostname}:${controller.securityClient.port}/root/oauth/issue"
       val result = await(controller.hello().apply(FakeRequest()))
       result.header.status must_== 401
@@ -148,7 +151,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
     }
 
     "return WWW-Authenticate header on 401 (FQON)" in new WithApplication {
-      val controller = app.injector.instanceOf[TestController]
+      val controller = app.injector.instanceOf[TestSecuredController]
       val fqon = "galacticfog"
       val realm = s"${controller.securityClient.protocol}://${controller.securityClient.hostname}:${controller.securityClient.port}/$fqon/oauth/issue"
       val result = await(controller.fromArgs(fqon).apply(FakeRequest()))
@@ -159,10 +162,8 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
       w.get.split(" ").toSeq must containAllOf(Seq("realm=\"" + realm + "\"", "error=\"invalid_token\""))
     }
 
-    val fakeApplication = FakeApplication()
-
     "return WWW-Authenticate header on 401 (realm-override)" in new WithApplication() {
-      val controller = app.injector.instanceOf[TestController]
+      val controller = app.injector.instanceOf[TestSecuredController]
       val realm = "https://realm.override:9455"
       val result = await(controller.hello().apply(FakeRequest()))
       result.header.status must_== 401
@@ -173,7 +174,7 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
     }
 
     "return WWW-Authenticate header on 401 (UUID)" in new WithApplication {
-      val controller = app.injector.instanceOf[TestController]
+      val controller = app.injector.instanceOf[TestSecuredController]
       val orgId = UUID.randomUUID()
       val realm = s"${controller.securityClient.protocol}://${controller.securityClient.hostname}:${controller.securityClient.port}/orgs/$orgId/oauth/issue"
       val result = await(controller.aUUID(orgId).apply(FakeRequest()))
@@ -187,9 +188,6 @@ class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with 
   }
 
   "GestaltFrameworkAuthProvider" should {
-
-    import com.galacticfog.gestalt.security.api.json.JsonImports.authFormat
-    import com.galacticfog.gestalt.security.api.json.JsonImports.tokenIntrospectionResponse
 
     "authenticate api credentials against org auth endpoints" in {
       val securityHostname = "security.local"
