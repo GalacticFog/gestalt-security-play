@@ -1,5 +1,3 @@
-name := """gestalt-security-play"""
-
 scalacOptions ++= Seq(
   "-unchecked", "-deprecation", "-feature",
   "-language:postfixOps", "-language:implicitConversions"

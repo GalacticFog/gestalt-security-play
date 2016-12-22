@@ -1,5 +1,7 @@
 import Dependencies._
 
+name := """gestalt-security-play-testkit"""
+
 libraryDependencies ++= Seq(
   Library.Mohiva.silhouetteTestkit,
   // 

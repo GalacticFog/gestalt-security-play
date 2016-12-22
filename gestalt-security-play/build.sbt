@@ -1,5 +1,7 @@
 import Dependencies._
 
+name := """gestalt-security-play"""
+
 libraryDependencies ++= Seq(
   Library.Play.ws,
   Library.Play.json,
