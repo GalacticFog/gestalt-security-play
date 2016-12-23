@@ -5,7 +5,7 @@ import java.util.UUID
 import com.galacticfog.gestalt.security.api._
 import com.galacticfog.gestalt.security.play.silhouette.fakes.{FakeGestaltFrameworkSecurityEnvironment, FakeGestaltFrameworkSecurityModule}
 import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
-import com.google.inject.{Inject, TypeLiteral}
+import com.google.inject.{AbstractModule, Inject, TypeLiteral}
 import org.junit.runner._
 import org.specs2.mock.Mockito
 import org.specs2.runner.JUnitRunner
@@ -15,7 +15,6 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc._
 import play.api.test._
 import play.api.libs.concurrent.Execution.Implicits._
-import play.api.inject.bind
 
 import scala.concurrent.Future
 
@@ -71,7 +70,7 @@ class FakeFrameworkRequestSpec extends PlaySpecification with Mockito {
 
   lazy val testAuthResponse = dummyAuthAccount()
   lazy val testCreds = testAuthResponse.creds
-  lazy val fakeEnv = FakeGestaltFrameworkSecurityEnvironment[DummyAuthenticator](
+  def fakeEnv = FakeGestaltFrameworkSecurityEnvironment[DummyAuthenticator](
     identities = Seq( testCreds -> testAuthResponse ),
     config = mock[GestaltSecurityConfig],
     client = mock[GestaltSecurityClient]
@@ -80,13 +79,12 @@ class FakeFrameworkRequestSpec extends PlaySpecification with Mockito {
   def app: Application =
     new GuiceApplicationBuilder()
       .bindings(
-        new FakeGestaltFrameworkSecurityModule(fakeEnv)
+        new FakeGestaltFrameworkSecurityModule(fakeEnv)(classOf[DummyAuthenticator])
       )
       .build
 
   abstract class FakeSecurity extends WithApplication(app) {
   }
-
 
   "FakeGestaltSecurityEnvironment" should {
 
@@ -114,7 +112,7 @@ class FakeFrameworkRequestSpec extends PlaySpecification with Mockito {
       val controller = app.injector.instanceOf[TestFrameworkController]
       val mc2 = mock[GestaltSecurityClient]
       controller.securityClient.withCreds(testCreds) returns mc2
-      // this sucks... testers should have to know the REST API, but GestaltOrg.getCurrentOrg is a static method
+      // this sucks... testers should have to know the REST API, but GestaltOrg.getCurrentOrg is a static method and therefore a pain to mock
       mc2.get[GestaltOrg]("orgs/current") returns Future.successful(org)
 
       val request = FakeRequest().withHeaders(AUTHORIZATION -> testCreds.headerValue)

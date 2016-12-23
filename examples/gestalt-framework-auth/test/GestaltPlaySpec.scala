@@ -35,8 +35,6 @@ class SecurityConfigModule(config: GestaltSecurityConfig) extends AbstractModule
   }
 }
 
-
-
 @RunWith(classOf[JUnitRunner])
 class GestaltPlaySpec extends Specification with Mockito with FutureAwaits with DefaultAwaitTimeout {
 

@@ -14,6 +14,8 @@ class GestaltSecurityModule extends AbstractModule {
   }
 
   @Provides
-  def providesSecurityClient(config: GestaltSecurityConfig)(implicit application: Application) = GestaltSecurityClient(config)
+  def providesSecurityClient(config: GestaltSecurityConfig)(implicit application: Application) = {
+    GestaltSecurityClient(config)(application)
+  }
 
 }

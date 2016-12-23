@@ -9,6 +9,4 @@ libraryDependencies ++= Seq(
   Library.Mohiva.silhouette,
   // 
   Library.Play.specs2         % Test
-  // Library.mockito % Test,
-  // Library.scalaGuice % Test
 )
