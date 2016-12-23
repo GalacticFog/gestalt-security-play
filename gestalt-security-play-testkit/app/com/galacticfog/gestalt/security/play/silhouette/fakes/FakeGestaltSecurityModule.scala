@@ -26,3 +26,12 @@ class FakeGestaltFrameworkSecurityModule[A <: Authenticator](fakeEnv: FakeGestal
     bind(classOf[GestaltSecurityClient]).toInstance(fakeEnv.client)
   }
 }
+
+object FakeGestaltSecurityModule {
+  def apply[A <: Authenticator](fakeEnv: FakeGestaltDelegatedSecurityEnvironment[A])(implicit ctag: reflect.ClassTag[A]): AbstractModule = {
+    new FakeGestaltDelegatedSecurityModule[A](fakeEnv)(ctag.runtimeClass.asInstanceOf[Class[A]])
+  }
+  def apply[A <: Authenticator](fakeEnv: FakeGestaltFrameworkSecurityEnvironment[A])(implicit ctag: reflect.ClassTag[A]): AbstractModule = {
+    new FakeGestaltFrameworkSecurityModule[A](fakeEnv)(ctag.runtimeClass.asInstanceOf[Class[A]])
+  }
+}
