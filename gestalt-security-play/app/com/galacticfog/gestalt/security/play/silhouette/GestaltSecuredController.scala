@@ -12,6 +12,6 @@ abstract class GestaltSecuredController[A <: Authenticator]( mAPI: MessagesApi,
 
   override val env: Environment[AuthAccount, A] = environment
 
-  val securityClient: GestaltSecurityClient = environment.client
+  implicit val securityClient: GestaltSecurityClient = environment.client
 
 }

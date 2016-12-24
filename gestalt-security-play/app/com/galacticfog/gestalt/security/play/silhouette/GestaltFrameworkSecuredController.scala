@@ -18,7 +18,7 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]( mAPI: Mess
                                                                       environment: GestaltSecurityEnvironment[AuthAccountWithCreds, A] )
   extends Silhouette[AuthAccountWithCreds, A] {
 
-  val securityClient: GestaltSecurityClient = environment.client
+  implicit val securityClient: GestaltSecurityClient = environment.client
 
   override val messagesApi: MessagesApi = mAPI
 

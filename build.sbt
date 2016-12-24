@@ -11,16 +11,13 @@ publishTo <<= version { (v: String) =>
     Some("publish-gf-releases"  at ao + "libs-releases-local")
 }
 
-isSnapshot := true
-
-publishMavenStyle := true
-
-credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
-
 lazy val commonSettings = Seq(
   organization := "com.galacticfog",
   version := "3.0.0",
-  scalaVersion := "2.11.8"
+  scalaVersion := "2.11.8",
+  isSnapshot := true,
+  publishMavenStyle := true,
+  credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
 )
 
 lazy val gestaltSecurityPlay = (project in file("gestalt-security-play"))
