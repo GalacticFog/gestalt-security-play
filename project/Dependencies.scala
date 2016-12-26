@@ -19,6 +19,10 @@ object Dependencies {
       val specs2 = "com.typesafe.play" %% "play-specs2" % version
     }
 
+    object Guice {
+      val multibinding = "com.google.inject.extensions" % "guice-multibindings" % "4.0"
+    }
+    
     object Gestalt {
       val securitySdk = "com.galacticfog" %% "gestalt-security-sdk-scala" % "2.3.0-SNAPSHOT"
     }

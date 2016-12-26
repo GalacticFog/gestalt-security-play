@@ -13,7 +13,7 @@ publishTo <<= version { (v: String) =>
 
 lazy val commonSettings = Seq(
   organization := "com.galacticfog",
-  version := "3.0.0",
+  version := "3.0.1",
   scalaVersion := "2.11.8",
   isSnapshot := true,
   publishMavenStyle := true,
