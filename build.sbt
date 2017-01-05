@@ -1,24 +1,16 @@
-name := """gestalt-security-play"""
-
-organization := "com.galacticfog"
-
-version := "2.2.5-SNAPSHOT"
-
-scalaVersion := "2.11.6"
-
 scalacOptions ++= Seq(
   "-unchecked", "-deprecation", "-feature",
   "-language:postfixOps", "-language:implicitConversions"
 )
 
-resolvers ++= Seq(
+resolvers in ThisBuild ++= Seq(
+  "Atlassian Releases" at "https://maven.atlassian.com/public/",
+  "scalaz-bintray" at "http://dl.bintray.com/scalaz/releases",
   "gestalt-snapshots" at "https://galacticfog.artifactoryonline.com/galacticfog/libs-snapshots-local",
-  "gestalt-releases" at "https://galacticfog.artifactoryonline.com/galacticfog/libs-releases-local",
-  "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/",
-  "Atlassian Releases" at "https://maven.atlassian.com/public/"
+  "gestalt-releases" at "https://galacticfog.artifactoryonline.com/galacticfog/libs-releases-local"
 )
 
-publishTo <<= version { (v: String) =>
+publishTo in ThisBuild <<= version { (v: String) =>
   val ao = "https://galacticfog.artifactoryonline.com/galacticfog/"
   if (v.trim.endsWith("SNAPSHOT"))
     Some("publish-gf-snapshots" at ao + "libs-snapshots-local;build.timestamp=" + new java.util.Date().getTime)
@@ -26,32 +18,24 @@ publishTo <<= version { (v: String) =>
     Some("publish-gf-releases"  at ao + "libs-releases-local")
 }
 
-isSnapshot := true
+organization      in ThisBuild := "com.galacticfog"
+version           in ThisBuild := "3.0.1"
+scalaVersion      in ThisBuild := "2.11.8"
+isSnapshot        in ThisBuild := true
+publishMavenStyle in ThisBuild := true
+credentials       in ThisBuild += Credentials(Path.userHome / ".ivy2" / ".credentials")
 
-publishMavenStyle := true
+lazy val gestaltSecurityPlay = (project in file("gestalt-security-play"))
+  .enablePlugins(PlayScala)
+  .settings(
+    // other settings
+  )
 
-credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
+lazy val gestaltSecurityPlayTestkit = (project in file("gestalt-security-play-testkit"))
+  .enablePlugins(PlayScala)
+  .settings(
+    // other settings
+  )
+  .aggregate(gestaltSecurityPlay)
+  .dependsOn(gestaltSecurityPlay)
 
-//
-// Adds project name to prompt like in a Play project
-//
-shellPrompt in ThisBuild := { state => "\033[0;36m" + Project.extract(state).currentRef.project + "\033[0m] " }
-
-libraryDependencies ++= Seq(
-  "com.galacticfog" %% "gestalt-security-sdk-scala" % "2.2.4-SNAPSHOT" withSources()
-)
-
-// MockWS for testing
-libraryDependencies += "de.leanovate.play-mockws" %% "play-mockws" % "2.3.0" % "test" withSources()
-
-// ----------------------------------------------------------------------------
-// Silhouette
-// ----------------------------------------------------------------------------
-
-libraryDependencies ++= Seq(
-  "junit" % "junit" % "4.12" % "test",
-  "org.specs2" %% "specs2-junit" % "2.4.17" % "test",
-  "org.specs2" %% "specs2-core" % "2.4.17" % "test",
-  "com.mohiva" %% "play-silhouette" % "2.0.1" withSources(),
-  "com.mohiva" %% "play-silhouette-testkit" % "2.0.1"
-)
