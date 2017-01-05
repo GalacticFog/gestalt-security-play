@@ -10,7 +10,7 @@ resolvers in ThisBuild ++= Seq(
   "gestalt-releases" at "https://galacticfog.artifactoryonline.com/galacticfog/libs-releases-local"
 )
 
-publishTo <<= version { (v: String) =>
+publishTo in ThisBuild <<= version { (v: String) =>
   val ao = "https://galacticfog.artifactoryonline.com/galacticfog/"
   if (v.trim.endsWith("SNAPSHOT"))
     Some("publish-gf-snapshots" at ao + "libs-snapshots-local;build.timestamp=" + new java.util.Date().getTime)
@@ -18,25 +18,21 @@ publishTo <<= version { (v: String) =>
     Some("publish-gf-releases"  at ao + "libs-releases-local")
 }
 
-lazy val commonSettings = Seq(
-  organization := "com.galacticfog",
-  version := "3.0.1",
-  scalaVersion := "2.11.8",
-  isSnapshot := true,
-  publishMavenStyle := true,
-  credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
-)
+organization      in ThisBuild := "com.galacticfog"
+version           in ThisBuild := "3.0.1"
+scalaVersion      in ThisBuild := "2.11.8"
+isSnapshot        in ThisBuild := true
+publishMavenStyle in ThisBuild := true
+credentials       in ThisBuild += Credentials(Path.userHome / ".ivy2" / ".credentials")
 
 lazy val gestaltSecurityPlay = (project in file("gestalt-security-play"))
   .enablePlugins(PlayScala)
-  .settings(commonSettings: _*)
   .settings(
     // other settings
   )
 
 lazy val gestaltSecurityPlayTestkit = (project in file("gestalt-security-play-testkit"))
   .enablePlugins(PlayScala)
-  .settings(commonSettings: _*)
   .settings(
     // other settings
   )

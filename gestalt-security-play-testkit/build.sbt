@@ -10,5 +10,3 @@ libraryDependencies ++= Seq(
   Library.mockito              % Test,
   Library.akkaTestkit          % Test
 )
-
-enablePlugins(PlayScala)
