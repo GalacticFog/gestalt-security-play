@@ -3,6 +3,13 @@ scalacOptions ++= Seq(
   "-language:postfixOps", "-language:implicitConversions"
 )
 
+resolvers in ThisBuild ++= Seq(
+  "Atlassian Releases" at "https://maven.atlassian.com/public/",
+  "scalaz-bintray" at "http://dl.bintray.com/scalaz/releases",
+  "gestalt-snapshots" at "https://galacticfog.artifactoryonline.com/galacticfog/libs-snapshots-local",
+  "gestalt-releases" at "https://galacticfog.artifactoryonline.com/galacticfog/libs-releases-local"
+)
+
 publishTo <<= version { (v: String) =>
   val ao = "https://galacticfog.artifactoryonline.com/galacticfog/"
   if (v.trim.endsWith("SNAPSHOT"))
