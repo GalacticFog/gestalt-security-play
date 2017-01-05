@@ -4,7 +4,12 @@ import java.util.UUID
 
 import com.galacticfog.gestalt.security.api._
 import com.google.inject.{AbstractModule, Provides}
+import com.mohiva.play.silhouette.api.EventBus
+import com.mohiva.play.silhouette.api.services.AuthenticatorService
+import com.mohiva.play.silhouette.impl.authenticators.{DummyAuthenticator, DummyAuthenticatorService}
 import play.api.{Application, Logger}
+
+import scala.concurrent.ExecutionContext
 
 class GestaltFrameworkSecurityConfigModule extends AbstractModule {
 

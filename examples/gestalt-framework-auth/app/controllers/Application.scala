@@ -10,13 +10,20 @@ import play.api.i18n.MessagesApi
 import play.api.libs.json.Json
 import play.api.mvc.RequestHeader
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class Application @Inject()(mApi: MessagesApi,
-                            env: GestaltFrameworkSecurityEnvironment[DummyAuthenticator] )
+class Application @Inject()( mApi: MessagesApi,
+                             env: GestaltFrameworkSecurityEnvironment[DummyAuthenticator] )
+                           ( implicit ec: ExecutionContext )
   extends GestaltFrameworkSecuredController[DummyAuthenticator](mApi, env) {
 
-  // define a function based on the request header
+  // simple auth, and say hello
+  def hello() = GestaltFrameworkAuthAction() { securedRequest =>
+    val account = securedRequest.identity.account
+    Ok(s"hello, ${account.username}")
+  }
+
+  // auth against fqon according to some request header
   def inSitu() = GestaltFrameworkAuthAction({rh: RequestHeader => rh.headers.get("FQON")}) {
     securedRequest =>
       val account = securedRequest.identity.account
@@ -43,11 +50,6 @@ class Application @Inject()(mApi: MessagesApi,
     securedRequest =>
       val account = securedRequest.identity.account
       Ok(s"${account.id} authenticated with username ${account.username} on org ${orgId}")
-  }
-
-  def hello() = GestaltFrameworkAuthAction(Option.empty[String]) { securedRequest =>
-    val account = securedRequest.identity.account
-    Ok(s"hello, ${account.username}")
   }
 
   // how about some authenticated methods with a credential-passthrough call to security?

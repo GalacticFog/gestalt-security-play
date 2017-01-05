@@ -27,15 +27,9 @@ credentials       in ThisBuild += Credentials(Path.userHome / ".ivy2" / ".creden
 
 lazy val gestaltSecurityPlay = (project in file("gestalt-security-play"))
   .enablePlugins(PlayScala)
-  .settings(
-    // other settings
-  )
 
 lazy val gestaltSecurityPlayTestkit = (project in file("gestalt-security-play-testkit"))
   .enablePlugins(PlayScala)
-  .settings(
-    // other settings
-  )
   .aggregate(gestaltSecurityPlay)
   .dependsOn(gestaltSecurityPlay)
 
