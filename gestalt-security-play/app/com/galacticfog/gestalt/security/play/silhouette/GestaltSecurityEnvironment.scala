@@ -13,12 +13,12 @@ trait GestaltSecurityEnvironment[I <: GestaltAuthIdentity, A <: Authenticator] e
   def config: GestaltSecurityConfig
 }
 
-class GestaltDelegatedSecurityEnvironment[A <: Authenticator] @Inject() ( securityConfig: GestaltSecurityConfig,
-                                                                          securityClient: GestaltSecurityClient,
-                                                                          bus: EventBus,
-                                                                          identitySvc: IdentityService[AuthAccount],
-                                                                          authSvc: AuthenticatorService[A] )
-                                                                        ( implicit ec: ExecutionContext )
+class GestaltDelegatedSecurityEnvironment[A <: Authenticator]( securityConfig: GestaltSecurityConfig,
+                                                               securityClient: GestaltSecurityClient,
+                                                               bus: EventBus,
+                                                               identitySvc: IdentityService[AuthAccount],
+                                                               authSvc: AuthenticatorService[A] )
+                                                             ( implicit ec: ExecutionContext )
   extends GestaltSecurityEnvironment[AuthAccount, A] {
 
   val gstltAuthProvider = securityConfig match {
@@ -47,12 +47,12 @@ class GestaltDelegatedSecurityEnvironment[A <: Authenticator] @Inject() ( securi
   override def client = securityClient
 }
 
-class GestaltFrameworkSecurityEnvironment[A <: Authenticator] @Inject() ( securityConfig: GestaltSecurityConfig,
-                                                                          securityClient: GestaltSecurityClient,
-                                                                          bus: EventBus,
-                                                                          identitySvc: IdentityService[AuthAccountWithCreds],
-                                                                          authSvc: AuthenticatorService[A] )
-                                                                        ( implicit ec: ExecutionContext )
+class GestaltFrameworkSecurityEnvironment[A <: Authenticator]( securityConfig: GestaltSecurityConfig,
+                                                               securityClient: GestaltSecurityClient,
+                                                               bus: EventBus,
+                                                               identitySvc: IdentityService[AuthAccountWithCreds],
+                                                               authSvc: AuthenticatorService[A] )
+                                                             ( implicit ec: ExecutionContext )
   extends GestaltSecurityEnvironment[AuthAccountWithCreds, A] {
 
   val gstltAuthProvider = new GestaltFrameworkAuthProvider(client)

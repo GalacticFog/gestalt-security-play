@@ -4,6 +4,7 @@ import java.util.UUID
 
 import com.galacticfog.gestalt.security.api._
 import com.galacticfog.gestalt.security.play.silhouette.fakes.{FakeGestaltFrameworkSecurityEnvironment, FakeGestaltSecurityModule}
+import com.galacticfog.gestalt.security.play.silhouette.modules.GestaltSecurityModule
 import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
 import com.google.inject.Inject
 import org.junit.runner._

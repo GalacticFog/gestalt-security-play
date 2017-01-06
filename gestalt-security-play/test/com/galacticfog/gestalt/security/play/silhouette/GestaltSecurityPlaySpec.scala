@@ -6,8 +6,10 @@ import com.galacticfog.gestalt.security.api._
 import com.galacticfog.gestalt.security.api.GestaltToken.ACCESS_TOKEN
 import com.galacticfog.gestalt.security.api.json.JsonImports._
 import com.galacticfog.gestalt.security.play.silhouette.modules.GestaltSecurityModule
-import com.google.inject.{AbstractModule, Inject}
-import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
+import com.google.inject.{AbstractModule, Inject, Provides, TypeLiteral}
+import com.mohiva.play.silhouette.api.EventBus
+import com.mohiva.play.silhouette.api.services.{AuthenticatorService, IdentityService}
+import com.mohiva.play.silhouette.impl.authenticators.{DummyAuthenticator, DummyAuthenticatorService}
 import mockws.MockWS
 import org.joda.time.DateTime
 import org.junit.runner._
@@ -23,13 +25,30 @@ import play.api.mvc._
 import play.api.mvc.Action
 import play.api.mvc.Results._
 import play.api.test.Helpers._
-import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
+
 import scala.concurrent.ExecutionContext
 
-class SecurityConfigOverrideModule(config: GestaltSecurityConfig) extends AbstractModule {
+class SecurityConfigOverrideModule(config: GestaltSecurityConfig)(implicit ec: ExecutionContext) extends AbstractModule {
+
   override def configure(): Unit = {
     bind(classOf[GestaltSecurityConfig]).toInstance(config)
+    bind(new TypeLiteral[AuthenticatorService[DummyAuthenticator]]{}).toInstance(new DummyAuthenticatorService)
+  }
+
+  @Provides def providesEnvironment( securityConfig: GestaltSecurityConfig,
+                                     securityClient: GestaltSecurityClient,
+                                     eventBus: EventBus,
+                                     identityService: IdentityService[AuthAccountWithCreds],
+                                     authenticatorService: AuthenticatorService[DummyAuthenticator])
+                                   ( implicit ec: ExecutionContext): GestaltFrameworkSecurityEnvironment[DummyAuthenticator] = {
+
+    new GestaltFrameworkSecurityEnvironment(
+      securityConfig,
+      securityClient,
+      eventBus,
+      identityService,
+      authenticatorService)
   }
 }
 
@@ -61,6 +80,8 @@ class TestSecuredController @Inject()( mApi: MessagesApi,
 
 @RunWith(classOf[JUnitRunner])
 class GestaltSecurityPlaySpec extends Specification with Mockito with FutureAwaits with DefaultAwaitTimeout {
+
+  import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
   val testConfigOverride = GestaltSecurityConfig(
     mode = FRAMEWORK_SECURITY_MODE,

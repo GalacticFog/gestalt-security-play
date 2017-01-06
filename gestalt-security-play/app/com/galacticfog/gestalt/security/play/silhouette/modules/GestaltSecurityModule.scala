@@ -8,12 +8,12 @@ import com.mohiva.play.silhouette.api.services.{AuthenticatorService, IdentitySe
 import com.mohiva.play.silhouette.impl.authenticators.{DummyAuthenticator, DummyAuthenticatorService}
 import play.api.Application
 import scala.concurrent.ExecutionContext
+import play.api.libs.concurrent.Execution.Implicits._
 
-class GestaltSecurityModule(implicit ec: ExecutionContext) extends AbstractModule {
+class GestaltSecurityModule extends AbstractModule {
 
   override def configure() = {
     bind(classOf[EventBus]).toInstance(EventBus())
-    bind(new TypeLiteral[AuthenticatorService[DummyAuthenticator]]{}).toInstance(new DummyAuthenticatorService)
     bind(new TypeLiteral[IdentityService[AuthAccount]]{}).toInstance(new AccountServiceImpl())
     bind(new TypeLiteral[IdentityService[AuthAccountWithCreds]]{}).toInstance(new AccountServiceImplWithCreds())
   }

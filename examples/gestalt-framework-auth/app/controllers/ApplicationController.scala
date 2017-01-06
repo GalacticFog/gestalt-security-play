@@ -3,7 +3,7 @@ package controllers
 import java.util.UUID
 
 import com.galacticfog.gestalt.security.api._
-import com.galacticfog.gestalt.security.play.silhouette.{GestaltFrameworkSecuredController, GestaltFrameworkSecurityEnvironment}
+import com.galacticfog.gestalt.security.play.silhouette.{AuthAccountWithCreds, GestaltFrameworkSecuredController, GestaltSecurityEnvironment}
 import com.google.inject.Inject
 import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
 import play.api.i18n.MessagesApi
@@ -12,9 +12,13 @@ import play.api.mvc.RequestHeader
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class Application @Inject()( mApi: MessagesApi,
-                             env: GestaltFrameworkSecurityEnvironment[DummyAuthenticator] )
-                           ( implicit ec: ExecutionContext )
+object ApplicationController {
+  type SecurityEnvironment = GestaltSecurityEnvironment[AuthAccountWithCreds,DummyAuthenticator]
+}
+
+class ApplicationController @Inject()( mApi: MessagesApi,
+                                       env: ApplicationController.SecurityEnvironment )
+                                     ( implicit ec: ExecutionContext )
   extends GestaltFrameworkSecuredController[DummyAuthenticator](mApi, env) {
 
   // simple auth, and say hello

@@ -7,12 +7,11 @@ import com.galacticfog.gestalt.security.play.silhouette.GestaltAuthResponseWithC
 import com.galacticfog.gestalt.security.play.silhouette.fakes.{FakeGestaltFrameworkSecurityEnvironment, FakeGestaltSecurityModule}
 import com.galacticfog.gestalt.security.play.silhouette.modules.{GestaltFrameworkSecurityConfigModule, GestaltSecurityModule}
 import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
-import com.google.inject.Inject
+import modules.ProdSecurityModule
 import org.junit.runner._
 import org.specs2.mock.Mockito
 import org.specs2.runner.JUnitRunner
 import play.api.Application
-import play.api.i18n.MessagesApi
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc._
 import play.api.test._
@@ -61,16 +60,36 @@ class ControllerFakeSecuritySpec extends PlaySpecification with Mockito {
 
   def app: Application =
     new GuiceApplicationBuilder()
-      .disable( // disable the usual security modules
-        classOf[GestaltFrameworkSecurityConfigModule],
-        classOf[GestaltSecurityModule]
-      )
+      .disable[GestaltFrameworkSecurityConfigModule]
+      .disable[GestaltSecurityModule]
+      .disable[ProdSecurityModule]
       .bindings( // enable the fake security module using the fake environment created by fakeEnv
         FakeGestaltSecurityModule(fakeEnv)
       )
       .build
 
   abstract class WithFakeSecurity extends WithApplication(app) {
+  }
+
+  "Application" should {
+
+    "say hello to authenticated users" in new WithFakeSecurity {
+      val request = FakeRequest().withHeaders(AUTHORIZATION -> testCreds.headerValue)
+
+      val Some(result) = route(request)
+
+      status(result) must equalTo(OK)
+      contentAsString(result) must startWith("hello, " + testAuthResponse.account.username)
+    }
+
+    "say 401 to non-authenticated users" in new WithFakeSecurity {
+      val request = FakeRequest() // no creds for you: .withHeaders(AUTHORIZATION -> testCreds.headerValue)
+
+      val Some(result) = route(request)
+
+      status(result) must equalTo(UNAUTHORIZED)
+    }
+
   }
 
 }
