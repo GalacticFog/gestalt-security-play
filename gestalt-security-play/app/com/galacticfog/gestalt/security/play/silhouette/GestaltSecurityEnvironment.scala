@@ -13,22 +13,22 @@ trait GestaltSecurityEnvironment[I <: GestaltAuthIdentity, A <: Authenticator] e
   def config: GestaltSecurityConfig
 }
 
-class GestaltDelegatedSecurityEnvironment[A <: Authenticator] @Inject() ( securityConfig: GestaltSecurityConfig,
-                                                                          securityClient: GestaltSecurityClient,
-                                                                          bus: EventBus,
-                                                                          identitySvc: IdentityService[AuthAccount],
-                                                                          authSvc: AuthenticatorService[A] )
-                                                                        ( implicit ec: ExecutionContext )
+class GestaltDelegatedSecurityEnvironment[A <: Authenticator]( securityConfig: GestaltSecurityConfig,
+                                                               securityClient: GestaltSecurityClient,
+                                                               bus: EventBus,
+                                                               identitySvc: IdentityService[AuthAccount],
+                                                               authSvc: AuthenticatorService[A] )
+                                                             ( implicit ec: ExecutionContext )
   extends GestaltSecurityEnvironment[AuthAccount, A] {
 
   val gstltAuthProvider = securityConfig match {
-    case GestaltSecurityConfig(_, _, _, _, _, _, None) =>
+    case GestaltSecurityConfig(_, _, _, _, _, _, None,_) =>
       Logger.error(s"GestaltSecurityConfig passed to GestaltDelegatedSecurityEnvironment without appId: ${securityConfig}")
       throw new RuntimeException("GestaltSecurityConfig passed to GestaltDelegatedSecurityEnvironment without appId.")
-    case GestaltSecurityConfig(FRAMEWORK_SECURITY_MODE, _, _, _, _, _, Some(appId)) =>
+    case GestaltSecurityConfig(FRAMEWORK_SECURITY_MODE, _, _, _, _, _, Some(appId), _) =>
       Logger.warn("GestaltSecurityConfig configured for FRAMEWORK mode was passed to GestaltDelegatedSecurityEnvironment; this is not valid. Will use the configuration as is because it had an appId.")
       new GestaltDelegatedAuthProvider(appId, client)
-    case GestaltSecurityConfig(DELEGATED_SECURITY_MODE, _, _, _, _, _, Some(appId)) =>
+    case GestaltSecurityConfig(DELEGATED_SECURITY_MODE, _, _, _, _, _, Some(appId), _) =>
       new GestaltDelegatedAuthProvider(appId, client)
   }
 
@@ -47,12 +47,12 @@ class GestaltDelegatedSecurityEnvironment[A <: Authenticator] @Inject() ( securi
   override def client = securityClient
 }
 
-class GestaltFrameworkSecurityEnvironment[A <: Authenticator] @Inject() ( securityConfig: GestaltSecurityConfig,
-                                                                          securityClient: GestaltSecurityClient,
-                                                                          bus: EventBus,
-                                                                          identitySvc: IdentityService[AuthAccountWithCreds],
-                                                                          authSvc: AuthenticatorService[A] )
-                                                                        ( implicit ec: ExecutionContext )
+class GestaltFrameworkSecurityEnvironment[A <: Authenticator]( securityConfig: GestaltSecurityConfig,
+                                                               securityClient: GestaltSecurityClient,
+                                                               bus: EventBus,
+                                                               identitySvc: IdentityService[AuthAccountWithCreds],
+                                                               authSvc: AuthenticatorService[A] )
+                                                             ( implicit ec: ExecutionContext )
   extends GestaltSecurityEnvironment[AuthAccountWithCreds, A] {
 
   val gstltAuthProvider = new GestaltFrameworkAuthProvider(client)

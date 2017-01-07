@@ -24,7 +24,7 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]( mAPI: Mess
 
   override val env: Environment[AuthAccountWithCreds, A] = environment
 
-  def securityRealmOverride(orgFQON: String): Option[String] = scala.util.Properties.envOrNone("GESTALT_SECURITY_REALM").map(
+  def securityRealmOverride(orgFQON: String): Option[String] = environment.config.realm.map(
     _.stripSuffix("/") + s"/${orgFQON}/oauth/issue"
   )
 
@@ -65,6 +65,7 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]( mAPI: Mess
   }
 
   object GestaltFrameworkAuthAction extends GestaltFrameworkAuthActionBuilder {
+    def apply(): GestaltFrameworkAuthActionBuilder = new GestaltFrameworkAuthActionBuilder(None)
     def apply(genFQON: RequestHeader => Option[String]): GestaltFrameworkAuthActionBuilder = new GestaltFrameworkAuthActionBuilder(Some(genFQON))
     def apply(genFQON: => Option[String]): GestaltFrameworkAuthActionBuilder = new GestaltFrameworkAuthActionBuilder(Some({rh: RequestHeader => genFQON}))
     def apply(genOrgId: RequestHeader => Option[UUID]): GestaltFrameworkAuthActionBuilderUUID = new GestaltFrameworkAuthActionBuilderUUID(Some(genOrgId))

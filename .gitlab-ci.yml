@@ -1,6 +1,7 @@
 stages:
 - test
 - publish
+- example-app-test
 
 cache:
   key: "$CI_PIPELINE_ID"
@@ -15,6 +16,14 @@ artifact-publish:
   stage: publish
   script: 
     - sbt publish
+
+test-example-application:
+  services:
+    - docker:dind
+  stage: example-app-test
+  script:
+    - cd examples/gestalt-framework-auth
+    - ./test-with-docker.sh
 
 github-publish:
   stage: publish

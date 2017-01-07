@@ -4,6 +4,7 @@ import java.util.UUID
 
 import com.galacticfog.gestalt.security.api._
 import com.galacticfog.gestalt.security.play.silhouette.fakes.{FakeGestaltFrameworkSecurityEnvironment, FakeGestaltSecurityModule}
+import com.galacticfog.gestalt.security.play.silhouette.modules.GestaltSecurityModule
 import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
 import com.google.inject.Inject
 import org.junit.runner._
@@ -72,7 +73,7 @@ class FakeFrameworkRequestSpec extends PlaySpecification with Mockito {
   lazy val testCreds = testAuthResponse.creds
   def fakeEnv = FakeGestaltFrameworkSecurityEnvironment[DummyAuthenticator](
     identities = Seq( testCreds -> testAuthResponse ),
-    config = mock[GestaltSecurityConfig],
+    config = GestaltSecurityConfig(FRAMEWORK_SECURITY_MODE, HTTP, "localhost", 9455, "empty", "empty", None, None),
     client = mock[GestaltSecurityClient]
   )
 
@@ -83,12 +84,12 @@ class FakeFrameworkRequestSpec extends PlaySpecification with Mockito {
       )
       .build
 
-  abstract class FakeSecurity extends WithApplication(app) {
+  abstract class WithFakeSecurity extends WithApplication(app) {
   }
 
   "FakeGestaltSecurityEnvironment" should {
 
-    "support faked authorization" in new FakeSecurity {
+    "support faked authorization" in new WithFakeSecurity {
       val request = FakeRequest().withHeaders(AUTHORIZATION -> testCreds.headerValue)
       val controller = app.injector.instanceOf[TestFrameworkController]
       val result = controller.hello(request)
@@ -97,7 +98,7 @@ class FakeFrameworkRequestSpec extends PlaySpecification with Mockito {
       contentAsString(result) must startWith("hello, " + testAuthResponse.account.username)
     }
 
-    "401 if no registered header even during faked authorization" in new FakeSecurity {
+    "401 if no registered header even during faked authorization" in new WithFakeSecurity {
       val request = FakeRequest() // no .withHeaders(AUTHORIZATION -> creds.headerValue)
       val controller = app.injector.instanceOf[TestFrameworkController]
       val result = controller.hello(request)
@@ -105,7 +106,7 @@ class FakeFrameworkRequestSpec extends PlaySpecification with Mockito {
       status(result) must equalTo(UNAUTHORIZED)
     }
 
-    "support mocked GestaltSecurityClient" in new FakeSecurity {
+    "support mocked GestaltSecurityClient" in new WithFakeSecurity {
       import com.galacticfog.gestalt.security.api.json.JsonImports.orgFormat
       val org = GestaltOrg(UUID.randomUUID(), "some-org", fqon = "some-org", None, None, Seq())
 

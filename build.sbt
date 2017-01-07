@@ -19,7 +19,7 @@ publishTo in ThisBuild <<= version { (v: String) =>
 }
 
 organization      in ThisBuild := "com.galacticfog"
-version           in ThisBuild := "3.0.1"
+version           in ThisBuild := "3.0.2-SNAPSHOT"
 scalaVersion      in ThisBuild := "2.11.8"
 isSnapshot        in ThisBuild := true
 publishMavenStyle in ThisBuild := true
@@ -27,15 +27,9 @@ credentials       in ThisBuild += Credentials(Path.userHome / ".ivy2" / ".creden
 
 lazy val gestaltSecurityPlay = (project in file("gestalt-security-play"))
   .enablePlugins(PlayScala)
-  .settings(
-    // other settings
-  )
 
 lazy val gestaltSecurityPlayTestkit = (project in file("gestalt-security-play-testkit"))
   .enablePlugins(PlayScala)
-  .settings(
-    // other settings
-  )
   .aggregate(gestaltSecurityPlay)
   .dependsOn(gestaltSecurityPlay)
 

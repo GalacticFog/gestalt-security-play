@@ -9,5 +9,6 @@ libraryDependencies ++= Seq(
   Library.Mohiva.silhouette,
   Library.Guice.multibinding,
   // 
-  Library.Play.specs2         % Test
+  Library.Play.specs2         % Test,
+  "de.leanovate.play-mockws" %% "play-mockws" % "2.4.2" % Test
 )
