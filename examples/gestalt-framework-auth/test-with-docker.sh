@@ -119,7 +119,7 @@ fi
 
 echo "
 Auth attempt with good credentials:"
-good=$(http --ignore-stdin --check-status -a "$GESTALT_SECURITY_KEY":"$GESTALT_SECURITY_SECRET" localhost:9000/
+good=$(http --ignore-stdin --check-status -a "$GESTALT_SECURITY_KEY":"$GESTALT_SECURITY_SECRET" localhost:9000/)
 echo "Got response:
 $good
 "
