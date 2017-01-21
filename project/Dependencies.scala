@@ -12,16 +12,12 @@ object Dependencies {
       val specs2 = "com.typesafe.play" %% "play-specs2" % version
     }
 
-    object Guice {
-      val multibinding = "com.google.inject.extensions" % "guice-multibindings" % "4.0"
-    }
-    
     object Gestalt {
-      val securitySdk = "com.galacticfog" %% "gestalt-security-sdk-scala" % "2.3.1-SNAPSHOT"
+      val securitySdk = "com.galacticfog" %% "gestalt-security-sdk-scala" % "2.4.0-SNAPSHOT"
     }
     
     object Mohiva {
-      val version = "3.0.5"
+      val version = "4.0.0"
       val silhouette        = "com.mohiva" %% "play-silhouette"          % version
       val silhouetteTestkit = "com.mohiva" %% "play-silhouette-testkit"  % version
     }
