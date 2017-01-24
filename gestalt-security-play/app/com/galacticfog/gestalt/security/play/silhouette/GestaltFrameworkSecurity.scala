@@ -1,28 +1,28 @@
 package com.galacticfog.gestalt.security.play.silhouette
 
 import java.util.UUID
+
 import com.galacticfog.gestalt.security.api._
 import com.galacticfog.gestalt.security.api.errors.UnauthorizedAPIException
 import com.galacticfog.gestalt.security.api.json.JsonImports.exceptionFormat
+import com.google.inject.Inject
 import com.mohiva.play.silhouette.api._
+import com.mohiva.play.silhouette.api.actions.SecuredRequest
 import play.api.i18n.MessagesApi
 import play.api.libs.json.Json
 import play.api.mvc._
 import play.api.libs.concurrent.Execution.Implicits._
+
 import scala.concurrent.Future
 
 case class OrgContextRequest[B](orgFQON: Option[String], request: Request[B]) extends WrappedRequest(request)
 case class OrgContextRequestUUID[B](orgId: Option[UUID], request: Request[B]) extends WrappedRequest(request)
 
-abstract class GestaltFrameworkSecuredController[A <: Authenticator]( mAPI: MessagesApi,
-                                                                      environment: GestaltSecurityEnvironment[AuthAccountWithCreds, A] )
-  extends Silhouette[AuthAccountWithCreds, A] {
+class GestaltFrameworkSecurity @Inject() ( environment: GestaltFrameworkSecurityEnvironment,
+                                           sil: Silhouette[GestaltFrameworkSecurityEnvironment] )
+ {
 
   implicit val securityClient: GestaltSecurityClient = environment.client
-
-  override val messagesApi: MessagesApi = mAPI
-
-  override val env: Environment[AuthAccountWithCreds, A] = environment
 
   def securityRealmOverride(orgFQON: String): Option[String] = environment.config.realm.map(
     _.stripSuffix("/") + s"/${orgFQON}/oauth/issue"

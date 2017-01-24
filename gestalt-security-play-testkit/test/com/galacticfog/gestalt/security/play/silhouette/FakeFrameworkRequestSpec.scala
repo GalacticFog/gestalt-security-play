@@ -20,6 +20,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 import scala.concurrent.Future
 
 class TestFrameworkController @Inject()(messagesApi: MessagesApi,
+                                        sec: GestaltFrameworkSecurity
                                         env: GestaltSecurityEnvironment[AuthAccountWithCreds,DummyAuthenticator])
   extends GestaltFrameworkSecuredController[DummyAuthenticator](messagesApi, env) {
 

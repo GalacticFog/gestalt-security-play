@@ -55,7 +55,7 @@ class SecurityConfigOverrideModule(config: GestaltSecurityConfig)(implicit ec: E
 class TestSecuredController @Inject()( mApi: MessagesApi,
                                        env: GestaltFrameworkSecurityEnvironment[DummyAuthenticator] )
                                      ( implicit ec: ExecutionContext )
-  extends GestaltFrameworkSecuredController[DummyAuthenticator](mApi, env) {
+  extends GestaltFrameworkSecurity[DummyAuthenticator](mApi, env) {
 
   def helloAuthUser() = GestaltFrameworkAuthAction() { securedRequest =>
     val account = securedRequest.identity.account
