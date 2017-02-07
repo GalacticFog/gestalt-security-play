@@ -17,7 +17,7 @@ object Dependencies {
     }
     
     object Gestalt {
-      val securitySdk = "com.galacticfog" %% "gestalt-security-sdk-scala" % "2.3.1-SNAPSHOT"
+      val securitySdk = "com.galacticfog" %% "gestalt-security-sdk-scala" % "2.3.2"
     }
     
     object Mohiva {
