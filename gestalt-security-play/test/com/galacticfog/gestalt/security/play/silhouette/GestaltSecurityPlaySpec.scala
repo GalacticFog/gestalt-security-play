@@ -37,41 +37,38 @@ class SecurityConfigOverrideModule(config: GestaltSecurityConfig)(implicit ec: E
   }
 
   @Provides def providesEnvironment( securityConfig: GestaltSecurityConfig,
-                                     securityClient: GestaltSecurityClient,
-                                     eventBus: EventBus,
-                                     identityService: IdentityService[AuthAccountWithCreds],
-                                     authenticatorService: AuthenticatorService[DummyAuthenticator])
-                                   ( implicit ec: ExecutionContext): GestaltFrameworkSecurityEnvironment[DummyAuthenticator] = {
+                                     securityClient: GestaltSecurityClient )
+                                   ( implicit ec: ExecutionContext): GestaltFrameworkSecurityEnvironment = {
 
     new GestaltFrameworkSecurityEnvironment(
       securityConfig,
-      securityClient,
-      eventBus,
-      identityService,
-      authenticatorService)
+      securityClient)
   }
 }
 
 class TestSecuredController @Inject()( mApi: MessagesApi,
-                                       env: GestaltFrameworkSecurityEnvironment[DummyAuthenticator] )
-                                     ( implicit ec: ExecutionContext )
-  extends GestaltFrameworkSecurity[DummyAuthenticator](mApi, env) {
+                                       env: GestaltFrameworkSecurityEnvironment,
+                                       gestaltSecurity: GestaltFrameworkSecurity
+                                     )
+                                     ( implicit ec: ExecutionContext ) {
 
-  def helloAuthUser() = GestaltFrameworkAuthAction() { securedRequest =>
+  val security = gestaltSecurity
+
+  def helloAuthUser() = security.AuthAction() { securedRequest =>
     val account = securedRequest.identity.account
     Ok(s"hello, ${account.username}")
   }
 
   // pass fqon for authenticating org in an argument, presumably from route
   // this authenticates against /:fqon/auth
-  def authOrgFromArg(fqon: String) = GestaltFrameworkAuthAction(Some(fqon)) {
+  def authOrgFromArg(fqon: String) = security.AuthAction(Some(fqon)) {
     securedRequest =>
       val account = securedRequest.identity.account
       Ok(s"${account.id} authenticated ${account.username} (${account.id}) on org ${fqon}")
   }
 
   // how about like above, but with a UUID? we got that covered! this authenticates against /orgs/:orgId/auth
-  def authOrgFromArg(orgId: UUID) = GestaltFrameworkAuthAction(Some(orgId)) {
+  def authOrgFromArg(orgId: UUID) = security.AuthAction(Some(orgId)) {
     securedRequest =>
       val account = securedRequest.identity.account
       Ok(s"${account.id} authenticated with username ${account.username} on org ${orgId}")
@@ -109,16 +106,16 @@ class GestaltSecurityPlaySpec extends Specification with Mockito with FutureAwai
     // requires WithApplication to create wsclient
     "allow easy specification of config via constructor injection" in new SecurityPlayTestApp {
       val controller = app.injector.instanceOf[TestSecuredController]
-      controller.securityClient.protocol   must_== testConfigOverride.protocol
-      controller.securityClient.hostname   must_== testConfigOverride.hostname
-      controller.securityClient.port       must_== testConfigOverride.port
-      controller.securityClient.creds.asInstanceOf[GestaltBasicCredentials].username  must_== testConfigOverride.apiKey
-      controller.securityClient.creds.asInstanceOf[GestaltBasicCredentials].password  must_== testConfigOverride.apiSecret
+      controller.security.securityClient.protocol   must_== testConfigOverride.protocol
+      controller.security.securityClient.hostname   must_== testConfigOverride.hostname
+      controller.security.securityClient.port       must_== testConfigOverride.port
+      controller.security.securityClient.creds.asInstanceOf[GestaltBasicCredentials].username  must_== testConfigOverride.apiKey
+      controller.security.securityClient.creds.asInstanceOf[GestaltBasicCredentials].password  must_== testConfigOverride.apiSecret
     }
 
     "return proper WWW-Authenticate header on 401 (root)" in new SecurityPlayTestApp {
       val controller = app.injector.instanceOf[TestSecuredController]
-      val realm = s"${controller.securityClient.protocol}://${controller.securityClient.hostname}:${controller.securityClient.port}/root/oauth/issue"
+      val realm = s"${controller.security.securityClient.protocol}://${controller.security.securityClient.hostname}:${controller.security.securityClient.port}/root/oauth/issue"
       val result = await(controller.helloAuthUser().apply(FakeRequest()))
       result.header.status must_== 401
       val w = result.header.headers.get(WWW_AUTHENTICATE)
@@ -130,7 +127,7 @@ class GestaltSecurityPlaySpec extends Specification with Mockito with FutureAwai
     "return proper WWW-Authenticate header on 401 (FQON)" in new SecurityPlayTestApp {
       val controller = app.injector.instanceOf[TestSecuredController]
       val fqon = "galacticfog"
-      val realm = s"${controller.securityClient.protocol}://${controller.securityClient.hostname}:${controller.securityClient.port}/$fqon/oauth/issue"
+      val realm = s"${controller.security.securityClient.protocol}://${controller.security.securityClient.hostname}:${controller.security.securityClient.port}/$fqon/oauth/issue"
       val result = await(controller.authOrgFromArg(fqon).apply(FakeRequest()))
       result.header.status must_== 401
       val w = result.header.headers.get(WWW_AUTHENTICATE)
@@ -142,7 +139,7 @@ class GestaltSecurityPlaySpec extends Specification with Mockito with FutureAwai
     "return proper WWW-Authenticate header on 401 (UUID)" in new SecurityPlayTestApp {
       val controller = app.injector.instanceOf[TestSecuredController]
       val orgId = UUID.randomUUID()
-      val realm = s"${controller.securityClient.protocol}://${controller.securityClient.hostname}:${controller.securityClient.port}/orgs/$orgId/oauth/issue"
+      val realm = s"${controller.security.securityClient.protocol}://${controller.security.securityClient.hostname}:${controller.security.securityClient.port}/orgs/$orgId/oauth/issue"
       val result = await(controller.authOrgFromArg(orgId).apply(FakeRequest()))
       result.header.status must_== 401
       val w = result.header.headers.get(WWW_AUTHENTICATE)

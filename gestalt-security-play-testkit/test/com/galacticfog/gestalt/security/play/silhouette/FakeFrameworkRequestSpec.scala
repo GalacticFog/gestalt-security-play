@@ -20,20 +20,19 @@ import play.api.libs.concurrent.Execution.Implicits._
 import scala.concurrent.Future
 
 class TestFrameworkController @Inject()(messagesApi: MessagesApi,
-                                        sec: GestaltFrameworkSecurity
-                                        env: GestaltSecurityEnvironment[AuthAccountWithCreds,DummyAuthenticator])
-  extends GestaltFrameworkSecuredController[DummyAuthenticator](messagesApi, env) {
+                                        sec: GestaltFrameworkSecurity,
+                                        env: GestaltSecurityEnvironment) extends Controller {
 
-  def Authenticate() = new GestaltFrameworkAuthActionBuilderUUID(Some({rh: RequestHeader => None: Option[UUID]}))
-  def Authenticate(fqon: String) = new GestaltFrameworkAuthActionBuilder(Some({rh: RequestHeader => Some(fqon)}))
-  def Authenticate(org: UUID) = new GestaltFrameworkAuthActionBuilderUUID(Some({rh: RequestHeader => Some(org)}))
+  def Authenticate() = new sec.GestaltFrameworkAuthActionBuilder(Some({rh: RequestHeader => None: Option[UUID]}))
+  def Authenticate(fqon: String) = new sec.GestaltFrameworkAuthActionBuilder(Some({rh: RequestHeader => Some(fqon)}))
+  def Authenticate(org: UUID) = new sec.GestaltFrameworkAuthActionBuilderUUID(Some({rh: RequestHeader => Some(org)}))
 
   def hello = Authenticate() { securedRequest =>
     Ok(s"hello, ${securedRequest.identity.account.username}. Your credentials were\n${securedRequest.identity.creds}")
   }
 
   def someCallToSecurityWithUserCredentials = Authenticate().async { request =>
-    GestaltOrg.getCurrentOrg()(securityClient.withCreds(request.identity.creds)) map { org =>
+    GestaltOrg.getCurrentOrg()(sec.securityClient.withCreds(request.identity.creds)) map { org =>
       Ok(s"credentials validate against ${org.fqon}")
     }
   }

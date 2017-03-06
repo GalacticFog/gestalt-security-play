@@ -8,9 +8,10 @@ import com.galacticfog.gestalt.security.api.json.JsonImports.exceptionFormat
 import com.google.inject.Inject
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.api.actions.SecuredRequest
-import play.api.i18n.MessagesApi
 import play.api.libs.json.Json
 import play.api.mvc._
+import play.api.mvc.Results._
+import play.api.http.HeaderNames._
 import play.api.libs.concurrent.Execution.Implicits._
 
 import scala.concurrent.Future
@@ -28,10 +29,12 @@ class GestaltFrameworkSecurity @Inject() ( environment: GestaltFrameworkSecurity
     _.stripSuffix("/") + s"/${orgFQON}/oauth/issue"
   )
 
-  class GestaltFrameworkAuthActionBuilder(maybeGenFQON: Option[RequestHeader => Option[String]] = None) extends ActionBuilder[SecuredRequest] {
-    def invokeBlock[B](request: Request[B], block: SecuredRequest[B] => Future[Result]) = {
+  class GestaltFrameworkAuthActionBuilder(maybeGenFQON: Option[RequestHeader => Option[String]] = None)
+    extends ActionBuilder[({ type R[B] = SecuredRequest[GestaltFrameworkSecurityEnvironment, B] })#R] {
+
+    def invokeBlock[B](request: Request[B], block: SecuredRequest[GestaltFrameworkSecurityEnvironment,B] => Future[Result]) = {
       val ocr = OrgContextRequest(maybeGenFQON flatMap {_(request)}, request)
-      SecuredRequestHandler(ocr) { securedRequest =>
+      sil.SecuredRequestHandler(ocr) { securedRequest =>
         Future.successful(HandlerResult(Ok, Some(securedRequest)))
       }.flatMap {
         case HandlerResult(r, Some(sr)) => block(sr)
@@ -46,10 +49,12 @@ class GestaltFrameworkSecurity @Inject() ( environment: GestaltFrameworkSecurity
     }
   }
 
-  class GestaltFrameworkAuthActionBuilderUUID(maybeGenOrgId: Option[RequestHeader => Option[UUID]] = None) extends ActionBuilder[SecuredRequest] {
-    def invokeBlock[B](request: Request[B], block: SecuredRequest[B] => Future[Result]) = {
+  class GestaltFrameworkAuthActionBuilderUUID(maybeGenOrgId: Option[RequestHeader => Option[UUID]] = None)
+    extends ActionBuilder[({ type R[B] = SecuredRequest[GestaltFrameworkSecurityEnvironment, B] })#R] {
+
+    def invokeBlock[B](request: Request[B], block: SecuredRequest[GestaltFrameworkSecurityEnvironment,B] => Future[Result]) = {
       val ocr = OrgContextRequestUUID(maybeGenOrgId flatMap {_(request)}, request)
-      SecuredRequestHandler(ocr) { securedRequest =>
+      sil.SecuredRequestHandler(ocr) { securedRequest =>
         Future.successful(HandlerResult(Ok, Some(securedRequest)))
       }.flatMap {
         case HandlerResult(r, Some(sr)) => block(sr)
@@ -64,7 +69,7 @@ class GestaltFrameworkSecurity @Inject() ( environment: GestaltFrameworkSecurity
     }
   }
 
-  object GestaltFrameworkAuthAction extends GestaltFrameworkAuthActionBuilder {
+  object AuthAction extends GestaltFrameworkAuthActionBuilder {
     def apply(): GestaltFrameworkAuthActionBuilder = new GestaltFrameworkAuthActionBuilder(None)
     def apply(genFQON: RequestHeader => Option[String]): GestaltFrameworkAuthActionBuilder = new GestaltFrameworkAuthActionBuilder(Some(genFQON))
     def apply(genFQON: => Option[String]): GestaltFrameworkAuthActionBuilder = new GestaltFrameworkAuthActionBuilder(Some({rh: RequestHeader => genFQON}))

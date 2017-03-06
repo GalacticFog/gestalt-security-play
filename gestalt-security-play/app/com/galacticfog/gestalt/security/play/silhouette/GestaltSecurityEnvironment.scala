@@ -4,6 +4,7 @@ import com.galacticfog.gestalt.security.api.{DELEGATED_SECURITY_MODE, FRAMEWORK_
 import com.google.inject.Inject
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.api.services.{AuthenticatorService, IdentityService}
+import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
 import play.api.Logger
 
 import scala.concurrent.ExecutionContext
@@ -17,6 +18,10 @@ class GestaltDelegatedSecurityEnvironment( securityConfig: GestaltSecurityConfig
                                            securityClient: GestaltSecurityClient )
                                          ( implicit ec: ExecutionContext )
   extends Env with GestaltSecurityEnvironment {
+
+  override type I = AuthAccountWithCreds
+
+  override type A = DummyAuthenticator
 
   val gstltAuthProvider = securityConfig match {
     case GestaltSecurityConfig(_, _, _, _, _, _, None,_) =>
@@ -42,6 +47,10 @@ class GestaltFrameworkSecurityEnvironment( securityConfig: GestaltSecurityConfig
                                            securityClient: GestaltSecurityClient )
                                          ( implicit ec: ExecutionContext )
   extends Env with GestaltSecurityEnvironment {
+
+  override type I = AuthAccountWithCreds
+
+  override type A = DummyAuthenticator
 
   val gstltAuthProvider = new GestaltFrameworkAuthProvider(client)
 

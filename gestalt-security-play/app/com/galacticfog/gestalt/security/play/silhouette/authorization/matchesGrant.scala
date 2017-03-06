@@ -24,7 +24,7 @@ case class matchesGrant(testGrantName: String) extends Authorization[AuthAccount
   }
 
   override def isAuthorized[B](identity: AuthAccount, authenticator: DummyAuthenticator)(
-      implicit request: Request[B], messages: Messages): Future[Boolean] = Future {
+      implicit request: Request[B] ): Future[Boolean] = Future {
     checkAuthorization(identity)
   }
 }

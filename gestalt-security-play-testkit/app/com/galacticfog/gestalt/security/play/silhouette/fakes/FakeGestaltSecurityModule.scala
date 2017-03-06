@@ -2,19 +2,14 @@ package com.galacticfog.gestalt.security.play.silhouette.fakes
 
 import com.galacticfog.gestalt.security.api.{GestaltSecurityClient, GestaltSecurityConfig}
 import com.galacticfog.gestalt.security.play.silhouette._
-import com.google.inject.{AbstractModule, SecTypes, TypeLiteral}
+import com.google.inject.{AbstractModule, TypeLiteral}
 import com.mohiva.play.silhouette.api.{Authenticator, EventBus}
 import com.mohiva.play.silhouette.api.services.{AuthenticatorService, IdentityService}
+import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
 
-class FakeGestaltDelegatedSecurityModule[A <: Authenticator](fakeEnv: FakeGestaltDelegatedSecurityEnvironment[A])
-                                                            (implicit clazzA: Class[A]) extends AbstractModule {
+class FakeGestaltDelegatedSecurityModule( fakeEnv: FakeGestaltDelegatedSecurityEnvironment ) extends AbstractModule {
   override def configure() = {
-    bind(
-      SecTypes.secEnv[AuthAccount, A](classOf[AuthAccount], clazzA)
-    ).toInstance(fakeEnv)
-    bind(
-      SecTypes.authService[A](clazzA)
-    ).toInstance(fakeEnv.authenticatorService)
+    bind(classOf[GestaltSecurityEnvironment]).toInstance(fakeEnv)
     bind(classOf[GestaltSecurityConfig]).toInstance(fakeEnv.config)
     bind(classOf[GestaltSecurityClient]).toInstance(fakeEnv.client)
     bind(classOf[EventBus]).toInstance(EventBus())
@@ -22,15 +17,9 @@ class FakeGestaltDelegatedSecurityModule[A <: Authenticator](fakeEnv: FakeGestal
   }
 }
 
-class FakeGestaltFrameworkSecurityModule[A <: Authenticator](fakeEnv: FakeGestaltFrameworkSecurityEnvironment[A])
-                                                            (implicit clazzA: Class[A]) extends AbstractModule {
+class FakeGestaltFrameworkSecurityModule( fakeEnv: FakeGestaltFrameworkSecurityEnvironment ) extends AbstractModule {
   override def configure() = {
-    bind(
-      SecTypes.secEnv[AuthAccountWithCreds, A](classOf[AuthAccountWithCreds], clazzA)
-    ).toInstance(fakeEnv)
-    bind(
-      SecTypes.authService[A](clazzA)
-    ).toInstance(fakeEnv.authenticatorService)
+    bind(classOf[GestaltSecurityEnvironment]).toInstance(fakeEnv)
     bind(classOf[GestaltSecurityConfig]).toInstance(fakeEnv.config)
     bind(classOf[GestaltSecurityClient]).toInstance(fakeEnv.client)
     bind(classOf[EventBus]).toInstance(EventBus())
@@ -39,10 +28,10 @@ class FakeGestaltFrameworkSecurityModule[A <: Authenticator](fakeEnv: FakeGestal
 }
 
 object FakeGestaltSecurityModule {
-  def apply[A <: Authenticator](fakeEnv: FakeGestaltDelegatedSecurityEnvironment[A])(implicit ctag: reflect.ClassTag[A]): AbstractModule = {
-    new FakeGestaltDelegatedSecurityModule[A](fakeEnv)(ctag.runtimeClass.asInstanceOf[Class[A]])
+  def apply(fakeEnv: FakeGestaltDelegatedSecurityEnvironment): AbstractModule = {
+    new FakeGestaltDelegatedSecurityModule(fakeEnv)
   }
-  def apply[A <: Authenticator](fakeEnv: FakeGestaltFrameworkSecurityEnvironment[A])(implicit ctag: reflect.ClassTag[A]): AbstractModule = {
-    new FakeGestaltFrameworkSecurityModule[A](fakeEnv)(ctag.runtimeClass.asInstanceOf[Class[A]])
+  def apply(fakeEnv: FakeGestaltFrameworkSecurityEnvironment): AbstractModule = {
+    new FakeGestaltFrameworkSecurityModule(fakeEnv)
   }
 }
