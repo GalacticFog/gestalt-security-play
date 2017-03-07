@@ -2,28 +2,61 @@ package com.galacticfog.gestalt.security.play.silhouette.fakes
 
 import com.galacticfog.gestalt.security.api.{GestaltSecurityClient, GestaltSecurityConfig}
 import com.galacticfog.gestalt.security.play.silhouette._
-import com.google.inject.{AbstractModule, TypeLiteral}
-import com.mohiva.play.silhouette.api.{Authenticator, EventBus}
-import com.mohiva.play.silhouette.api.services.{AuthenticatorService, IdentityService}
-import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
+import com.google.inject.{AbstractModule, Provides, TypeLiteral}
+import com.mohiva.play.silhouette.api.{Environment, EventBus, Silhouette, SilhouetteProvider}
+import com.mohiva.play.silhouette.api.services.IdentityService
+import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticatorService
+import net.codingwell.scalaguice.ScalaModule
 
-class FakeGestaltDelegatedSecurityModule( fakeEnv: FakeGestaltDelegatedSecurityEnvironment ) extends AbstractModule {
+import scala.concurrent.ExecutionContext
+
+class FakeGestaltDelegatedSecurityModule( fakeEnv: FakeGestaltDelegatedSecurityEnvironment ) extends AbstractModule with ScalaModule {
   override def configure() = {
-    bind(classOf[GestaltSecurityEnvironment]).toInstance(fakeEnv)
-    bind(classOf[GestaltSecurityConfig]).toInstance(fakeEnv.config)
-    bind(classOf[GestaltSecurityClient]).toInstance(fakeEnv.client)
+    bind[Silhouette[GestaltDelegatedSecurityEnvironment]].to[SilhouetteProvider[GestaltDelegatedSecurityEnvironment]]
+    bind[GestaltDelegatedSecurityEnvironment].toInstance(fakeEnv)
+    bind[GestaltSecurityConfig].toInstance(fakeEnv.config)
+    bind[GestaltSecurityClient].toInstance(fakeEnv.client)
     bind(classOf[EventBus]).toInstance(EventBus())
     bind(new TypeLiteral[IdentityService[AuthAccount]]{}).toInstance(new AccountServiceImpl())
   }
+
+  @Provides
+  def provideDelegatedSecurityEnvironment( identityService: IdentityService[AuthAccount],
+                                           securityConfig: GestaltSecurityConfig,
+                                           securityClient: GestaltSecurityClient,
+                                           eventBus: EventBus )
+                                         ( implicit ec: ExecutionContext ): Environment[GestaltDelegatedSecurityEnvironment] = {
+    Environment[GestaltDelegatedSecurityEnvironment](
+      identityService,
+      new DummyAuthenticatorService,
+      Seq(new FakeGestaltDelegatedAuthProvider(fakeEnv.identities)),
+      eventBus
+    )
+  }
 }
 
-class FakeGestaltFrameworkSecurityModule( fakeEnv: FakeGestaltFrameworkSecurityEnvironment ) extends AbstractModule {
+class FakeGestaltFrameworkSecurityModule( fakeEnv: FakeGestaltFrameworkSecurityEnvironment ) extends AbstractModule with ScalaModule {
   override def configure() = {
-    bind(classOf[GestaltSecurityEnvironment]).toInstance(fakeEnv)
-    bind(classOf[GestaltSecurityConfig]).toInstance(fakeEnv.config)
-    bind(classOf[GestaltSecurityClient]).toInstance(fakeEnv.client)
-    bind(classOf[EventBus]).toInstance(EventBus())
+    bind[Silhouette[GestaltFrameworkSecurityEnvironment]].to[SilhouetteProvider[GestaltFrameworkSecurityEnvironment]]
+    bind[GestaltFrameworkSecurityEnvironment].toInstance(fakeEnv)
+    bind[GestaltSecurityConfig].toInstance(fakeEnv.config)
+    bind[GestaltSecurityClient].toInstance(fakeEnv.client)
+    bind[EventBus].toInstance(EventBus())
     bind(new TypeLiteral[IdentityService[AuthAccountWithCreds]]{}).toInstance(new AccountServiceImplWithCreds())
+  }
+
+  @Provides
+  def provideFrameworkSecurityEnvironment( identityService: IdentityService[AuthAccountWithCreds],
+                                           securityConfig: GestaltSecurityConfig,
+                                           securityClient: GestaltSecurityClient,
+                                           eventBus: EventBus )
+                                         ( implicit ec: ExecutionContext ): Environment[GestaltFrameworkSecurityEnvironment] = {
+    Environment[GestaltFrameworkSecurityEnvironment](
+      identityService,
+      new DummyAuthenticatorService,
+      Seq(new FakeGestaltFrameworkAuthProvider(fakeEnv.identities)),
+      eventBus
+    )
   }
 }
 

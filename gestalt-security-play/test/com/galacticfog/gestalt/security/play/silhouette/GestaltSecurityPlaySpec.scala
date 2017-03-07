@@ -6,11 +6,10 @@ import com.galacticfog.gestalt.security.api._
 import com.galacticfog.gestalt.security.api.GestaltToken.ACCESS_TOKEN
 import com.galacticfog.gestalt.security.api.json.JsonImports._
 import com.galacticfog.gestalt.security.play.silhouette.modules.GestaltSecurityModule
-import com.google.inject.{AbstractModule, Inject, Provides, TypeLiteral}
-import com.mohiva.play.silhouette.api.EventBus
-import com.mohiva.play.silhouette.api.services.{AuthenticatorService, IdentityService}
-import com.mohiva.play.silhouette.impl.authenticators.{DummyAuthenticator, DummyAuthenticatorService}
+import com.google.inject.{AbstractModule, Inject, Provides}
+import com.mohiva.play.silhouette.api.{Silhouette, SilhouetteProvider}
 import mockws.MockWS
+import net.codingwell.scalaguice.ScalaModule
 import org.joda.time.DateTime
 import org.junit.runner._
 import org.specs2.mock.Mockito
@@ -29,29 +28,16 @@ import play.api.libs.json.Json
 
 import scala.concurrent.ExecutionContext
 
-class SecurityConfigOverrideModule(config: GestaltSecurityConfig)(implicit ec: ExecutionContext) extends AbstractModule {
-
+class SecurityConfigOverrideModule(config: GestaltSecurityConfig) extends AbstractModule with ScalaModule {
   override def configure(): Unit = {
-    bind(classOf[GestaltSecurityConfig]).toInstance(config)
-    bind(new TypeLiteral[AuthenticatorService[DummyAuthenticator]]{}).toInstance(new DummyAuthenticatorService)
+    bind[Silhouette[GestaltFrameworkSecurityEnvironment]].to[SilhouetteProvider[GestaltFrameworkSecurityEnvironment]]
   }
 
-  @Provides def providesEnvironment( securityConfig: GestaltSecurityConfig,
-                                     securityClient: GestaltSecurityClient )
-                                   ( implicit ec: ExecutionContext): GestaltFrameworkSecurityEnvironment = {
-
-    new GestaltFrameworkSecurityEnvironment(
-      securityConfig,
-      securityClient)
-  }
+  @Provides
+  def providesSecurityConfig(): GestaltSecurityConfig = config
 }
 
-class TestSecuredController @Inject()( mApi: MessagesApi,
-                                       env: GestaltFrameworkSecurityEnvironment,
-                                       gestaltSecurity: GestaltFrameworkSecurity
-                                     )
-                                     ( implicit ec: ExecutionContext ) {
-
+class TestSecuredController @Inject()( gestaltSecurity: GestaltFrameworkSecurity ) {
   val security = gestaltSecurity
 
   def helloAuthUser() = security.AuthAction() { securedRequest =>

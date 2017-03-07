@@ -4,8 +4,6 @@ import java.util.UUID
 
 import com.galacticfog.gestalt.security.api._
 import com.galacticfog.gestalt.security.play.silhouette.fakes.{FakeGestaltFrameworkSecurityEnvironment, FakeGestaltSecurityModule}
-import com.galacticfog.gestalt.security.play.silhouette.modules.GestaltSecurityModule
-import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
 import com.google.inject.Inject
 import org.junit.runner._
 import org.specs2.mock.Mockito
@@ -20,12 +18,14 @@ import play.api.libs.concurrent.Execution.Implicits._
 import scala.concurrent.Future
 
 class TestFrameworkController @Inject()(messagesApi: MessagesApi,
-                                        sec: GestaltFrameworkSecurity,
-                                        env: GestaltSecurityEnvironment) extends Controller {
+                                        security: GestaltFrameworkSecurity) extends Controller {
 
-  def Authenticate() = new sec.GestaltFrameworkAuthActionBuilder(Some({rh: RequestHeader => None: Option[UUID]}))
+  val sec = security
+
+  def Authenticate() = new sec.GestaltFrameworkAuthActionBuilderUUID(Some({rh: RequestHeader => None: Option[UUID]}))
   def Authenticate(fqon: String) = new sec.GestaltFrameworkAuthActionBuilder(Some({rh: RequestHeader => Some(fqon)}))
   def Authenticate(org: UUID) = new sec.GestaltFrameworkAuthActionBuilderUUID(Some({rh: RequestHeader => Some(org)}))
+  def MaybeAuthenticate = sec.UserAwareAction()
 
   def hello = Authenticate() { securedRequest =>
     Ok(s"hello, ${securedRequest.identity.account.username}. Your credentials were\n${securedRequest.identity.creds}")
@@ -36,6 +36,16 @@ class TestFrameworkController @Inject()(messagesApi: MessagesApi,
       Ok(s"credentials validate against ${org.fqon}")
     }
   }
+
+  def someUserAwareCall = MaybeAuthenticate {
+    userAwareRequest =>
+      userAwareRequest.identity.fold (
+        Ok("hello, stranger")
+      ) (
+        user => Ok(s"hello, ${user.account.username}")
+      )
+  }
+
 }
 
 @RunWith(classOf[JUnitRunner])
@@ -71,10 +81,10 @@ class FakeFrameworkRequestSpec extends PlaySpecification with Mockito {
 
   lazy val testAuthResponse = dummyAuthAccount()
   lazy val testCreds = testAuthResponse.creds
-  def fakeEnv = FakeGestaltFrameworkSecurityEnvironment[DummyAuthenticator](
+  def fakeEnv = FakeGestaltFrameworkSecurityEnvironment(
     identities = Seq( testCreds -> testAuthResponse ),
-    config = GestaltSecurityConfig(FRAMEWORK_SECURITY_MODE, HTTP, "localhost", 9455, "empty", "empty", None, None),
-    client = mock[GestaltSecurityClient]
+    securityConfig = GestaltSecurityConfig(FRAMEWORK_SECURITY_MODE, HTTP, "localhost", 9455, "empty", "empty", None, None),
+    securityClient = mock[GestaltSecurityClient]
   )
 
   def app: Application =
@@ -98,6 +108,18 @@ class FakeFrameworkRequestSpec extends PlaySpecification with Mockito {
       contentAsString(result) must startWith("hello, " + testAuthResponse.account.username)
     }
 
+    "handle user aware actions" in new WithFakeSecurity {
+      val controller = app.injector.instanceOf[TestFrameworkController]
+
+      val resultAuth = controller.someUserAwareCall(FakeRequest().withHeaders(AUTHORIZATION -> testCreds.headerValue))
+      status(resultAuth) must equalTo(OK)
+      contentAsString(resultAuth) must startWith("hello, " + testAuthResponse.account.username)
+
+      val resultAnon = controller.someUserAwareCall(FakeRequest())
+      status(resultAnon) must equalTo(OK)
+      contentAsString(resultAnon) must startWith("hello, stranger")
+    }
+
     "401 if no registered header even during faked authorization" in new WithFakeSecurity {
       val request = FakeRequest() // no .withHeaders(AUTHORIZATION -> creds.headerValue)
       val controller = app.injector.instanceOf[TestFrameworkController]
@@ -112,7 +134,7 @@ class FakeFrameworkRequestSpec extends PlaySpecification with Mockito {
 
       val controller = app.injector.instanceOf[TestFrameworkController]
       val mc2 = mock[GestaltSecurityClient]
-      controller.securityClient.withCreds(testCreds) returns mc2
+      controller.sec.securityClient.withCreds(testCreds) returns mc2
       // this sucks... testers should have to know the REST API, but GestaltOrg.getCurrentOrg is a static method and therefore a pain to mock
       mc2.get[GestaltOrg]("orgs/current") returns Future.successful(org)
 

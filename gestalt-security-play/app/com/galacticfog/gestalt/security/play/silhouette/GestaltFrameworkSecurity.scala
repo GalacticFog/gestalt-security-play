@@ -7,7 +7,7 @@ import com.galacticfog.gestalt.security.api.errors.UnauthorizedAPIException
 import com.galacticfog.gestalt.security.api.json.JsonImports.exceptionFormat
 import com.google.inject.Inject
 import com.mohiva.play.silhouette.api._
-import com.mohiva.play.silhouette.api.actions.SecuredRequest
+import com.mohiva.play.silhouette.api.actions.{SecuredRequest, UserAwareRequest}
 import play.api.libs.json.Json
 import play.api.mvc._
 import play.api.mvc.Results._
@@ -77,5 +77,31 @@ class GestaltFrameworkSecurity @Inject() ( environment: GestaltFrameworkSecurity
     def apply(genOrgId: => Option[UUID]): GestaltFrameworkAuthActionBuilderUUID = new GestaltFrameworkAuthActionBuilderUUID(Some({rh: RequestHeader => genOrgId}))
   }
 
-}
+   class UserAwareActionBuilderFQON(gen: RequestHeader => Option[String]) extends UserAwareActionBuilder(Some(gen(_).map(Left(_))))
+
+   class UserAwareActionBuilderUUID(gen: RequestHeader => Option[UUID]) extends UserAwareActionBuilder(Some(gen(_).map(Right(_))))
+
+   class UserAwareActionBuilder(maybeOrgGen: Option[RequestHeader => Option[Either[String,UUID]]] = None) extends ActionBuilder[({ type R[B] = UserAwareRequest[GestaltFrameworkSecurityEnvironment, B] })#R] {
+     override def invokeBlock[A](request: Request[A], block: (UserAwareRequest[GestaltFrameworkSecurityEnvironment,A]) => Future[Result]): Future[Result] = {
+       val maybeOrg = maybeOrgGen flatMap {_(request)}
+       val ocr = maybeOrg.fold[WrappedRequest[A]](
+         OrgContextRequest(None, request)
+       )(_.fold(
+         {o => OrgContextRequest(Some(o), request)},
+         {o => OrgContextRequestUUID(Some(o), request)}
+       ))
+       sil.UserAwareRequestHandler(ocr) { r =>
+         block(r).map(r => HandlerResult(r))
+       }.map(_.result)
+     }
+   }
+
+   object UserAwareAction {
+     def apply(): UserAwareActionBuilder = new UserAwareActionBuilder
+     def apply(genFQON:  RequestHeader => Option[String]): UserAwareActionBuilderFQON = new UserAwareActionBuilderFQON(genFQON)
+     def apply(genFQON:                => Option[String]): UserAwareActionBuilderFQON = new UserAwareActionBuilderFQON({_: RequestHeader => genFQON})
+     def apply(genOrgId: RequestHeader => Option[UUID]):   UserAwareActionBuilderUUID = new UserAwareActionBuilderUUID(genOrgId)
+     def apply(genOrgId:               => Option[UUID]):   UserAwareActionBuilderUUID = new UserAwareActionBuilderUUID({_: RequestHeader => genOrgId})
+   }
+ }
 

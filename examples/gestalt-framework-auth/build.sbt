@@ -1,6 +1,6 @@
 name := """gestalt-framework-auth"""
 
-version := "1.0"
+version := "2.5"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
@@ -10,10 +10,10 @@ libraryDependencies ++= Seq(
   jdbc,
   cache,
   ws,
-  "com.galacticfog" %% "gestalt-security-play" % "3.0.3-SNAPSHOT" withSources,
+  "com.galacticfog" %% "gestalt-security-play" % "4.0.0-SNAPSHOT" withSources,
   //
   specs2 % Test,
-  "com.galacticfog" %% "gestalt-security-play-testkit" % "3.0.3-SNAPSHOT" % Test withSources
+  "com.galacticfog" %% "gestalt-security-play-testkit" % "4.0.0-SNAPSHOT" % Test withSources
 )
 
 resolvers ++= Seq(

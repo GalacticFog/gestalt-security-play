@@ -12,15 +12,9 @@ import scala.reflect.runtime.universe._
 case class FakeGestaltDelegatedSecurityEnvironment ( identities: Seq[(GestaltAPICredentials, GestaltAuthResponse)],
                                                      securityConfig: GestaltSecurityConfig,
                                                      securityClient: GestaltSecurityClient )
-                                                   ( implicit val ec: ExecutionContext )
-  extends GestaltDelegatedSecurityEnvironment(securityConfig, securityClient) {
-
-}
+  extends GestaltDelegatedSecurityEnvironment(securityConfig, securityClient)
 
 case class FakeGestaltFrameworkSecurityEnvironment ( identities: Seq[(GestaltAPICredentials, GestaltAuthResponseWithCreds)],
                                                      securityConfig: GestaltSecurityConfig,
                                                      securityClient: GestaltSecurityClient )
-                                                   ( implicit val ec: ExecutionContext )
-  extends GestaltFrameworkSecurityEnvironment(securityConfig, securityClient) {
-
-}
+  extends GestaltFrameworkSecurityEnvironment(securityConfig, securityClient)

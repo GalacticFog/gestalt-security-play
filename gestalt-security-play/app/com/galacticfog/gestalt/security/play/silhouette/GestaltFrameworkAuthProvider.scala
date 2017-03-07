@@ -4,10 +4,10 @@ import java.util.UUID
 
 import com.galacticfog.gestalt.security.api.GestaltToken.ACCESS_TOKEN
 import com.galacticfog.gestalt.security.api._
-
 import play.api.Logger
 import play.api.http.HeaderNames
 import play.api.mvc.Request
+
 import scala.concurrent.Future
 import play.api.libs.concurrent.Execution.Implicits._
 
