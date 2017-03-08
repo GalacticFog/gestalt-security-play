@@ -1,12 +1,13 @@
 package com.galacticfog.gestalt.security.play.silhouette.modules
 
-import com.galacticfog.gestalt.security.api.{DELEGATED_SECURITY_MODE, FRAMEWORK_SECURITY_MODE, GestaltSecurityClient, GestaltSecurityConfig}
+import com.galacticfog.gestalt.security.api._
 import com.galacticfog.gestalt.security.play.silhouette._
 import com.google.inject.{AbstractModule, Provides, TypeLiteral}
 import com.mohiva.play.silhouette.api.{Environment, EventBus, Silhouette, SilhouetteProvider}
 import com.mohiva.play.silhouette.api.services.IdentityService
 import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticatorService
 import net.codingwell.scalaguice.ScalaModule
+import play.api.libs.ws.WSClient
 import play.api.{Application, Logger}
 
 import scala.concurrent.ExecutionContext
@@ -20,8 +21,14 @@ class GestaltSecurityModule extends AbstractModule with ScalaModule {
   }
 
   @Provides
-  def providesSecurityClient(config: GestaltSecurityConfig)(implicit application: Application) = {
-    GestaltSecurityClient(config)(application)
+  def providesSecurityClient(config: GestaltSecurityConfig, wsclient: WSClient) = {
+    new GestaltSecurityClient(
+      client = wsclient,
+      protocol = config.protocol,
+      hostname = config.hostname,
+      port = config.port,
+      creds = GestaltBasicCredentials(config.apiKey,config.apiSecret)
+    )
   }
 
   @Provides

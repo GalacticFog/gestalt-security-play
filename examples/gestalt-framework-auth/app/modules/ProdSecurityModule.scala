@@ -12,25 +12,7 @@ import scala.concurrent.ExecutionContext
 
 class ProdSecurityModule extends AbstractModule {
 
-  override def configure(): Unit = {}
-
-  @Provides
-  def providesSilhouetteAuthSvc()( implicit ec: ExecutionContext ): AuthenticatorService[DummyAuthenticator] = {
-    new DummyAuthenticatorService()
+  override def configure(): Unit = {
   }
 
-  @Provides def providesEnvironment( securityConfig: GestaltSecurityConfig,
-                                     securityClient: GestaltSecurityClient,
-                                     eventBus: EventBus,
-                                     identityService: IdentityService[AuthAccountWithCreds],
-                                     authenticatorService: AuthenticatorService[DummyAuthenticator] )
-                                   ( implicit ec: ExecutionContext ): ApplicationController.SecurityEnvironment = {
-    new GestaltFrameworkSecurityEnvironment(
-      securityConfig,
-      securityClient,
-      eventBus,
-      identityService,
-      authenticatorService
-    )
-  }
 }

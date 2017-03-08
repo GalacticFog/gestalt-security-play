@@ -3,39 +3,31 @@ package controllers
 import java.util.UUID
 
 import com.galacticfog.gestalt.security.api._
-import com.galacticfog.gestalt.security.play.silhouette.{AuthAccountWithCreds, GestaltFrameworkSecuredController, GestaltSecurityEnvironment}
+import com.galacticfog.gestalt.security.play.silhouette.GestaltFrameworkSecurity
 import com.google.inject.Inject
-import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
-import play.api.i18n.MessagesApi
 import play.api.libs.json.Json
-import play.api.mvc.RequestHeader
+import play.api.mvc.{Controller, RequestHeader}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-object ApplicationController {
-  type SecurityEnvironment = GestaltSecurityEnvironment[AuthAccountWithCreds,DummyAuthenticator]
-}
-
-class ApplicationController @Inject()( mApi: MessagesApi,
-                                       env: ApplicationController.SecurityEnvironment )
-                                     ( implicit ec: ExecutionContext )
-  extends GestaltFrameworkSecuredController[DummyAuthenticator](mApi, env) {
+class ApplicationController @Inject()( sec: GestaltFrameworkSecurity )
+                                     ( implicit ec: ExecutionContext ) extends Controller {
 
   // simple auth, and say hello
-  def hello() = GestaltFrameworkAuthAction() { securedRequest =>
+  def hello() = sec.AuthAction() { securedRequest =>
     val account = securedRequest.identity.account
     Ok(s"hello, ${account.username}")
   }
 
   // auth against fqon according to some request header
-  def inSitu() = GestaltFrameworkAuthAction({rh: RequestHeader => rh.headers.get("FQON")}) {
+  def inSitu() = sec.AuthAction({rh: RequestHeader => rh.headers.get("FQON")}) {
     securedRequest =>
       val account = securedRequest.identity.account
       Ok(s"${account.id} authenticated ${account.username} (${account.id})")
   }
 
   // like above, but async+json
-  def inSituJsonAsync() = GestaltFrameworkAuthAction({rh: RequestHeader => rh.headers.get("FQON")}).async(parse.json) {
+  def inSituJsonAsync() = sec.AuthAction({rh: RequestHeader => rh.headers.get("FQON")}).async(parse.json) {
     securedRequest => Future {
       val account = securedRequest.identity.account
       Ok(s"${account.id} authenticated ${account.username} (${account.id})")
@@ -43,25 +35,25 @@ class ApplicationController @Inject()( mApi: MessagesApi,
   }
 
   // pass fqon for authenticating org
-  def fromArgs(fqon: String) = GestaltFrameworkAuthAction(Some(fqon)) {
+  def fromArgs(fqon: String) = sec.AuthAction(Some(fqon)) {
     securedRequest =>
       val account = securedRequest.identity.account
       Ok(s"${account.id} authenticated ${account.username} (${account.id}) on org ${fqon}")
   }
 
   // how about a UUID? we got that covered! this authenticates against /orgs/:orgId/auth
-  def aUUID(orgId: UUID) = GestaltFrameworkAuthAction(Some(orgId)) {
+  def aUUID(orgId: UUID) = sec.AuthAction(Some(orgId)) {
     securedRequest =>
       val account = securedRequest.identity.account
       Ok(s"${account.id} authenticated with username ${account.username} on org ${orgId}")
   }
 
   // how about some authenticated methods with a credential-passthrough call to security?
-  def createOrgPassthrough(parentOrgId: UUID) = GestaltFrameworkAuthAction(Some(parentOrgId)).async(parse.json) {
+  def createOrgPassthrough(parentOrgId: UUID) = sec.AuthAction(Some(parentOrgId)).async(parse.json) {
     securedRequest =>
       val account = securedRequest.identity.account
       val creds = securedRequest.identity.creds
-      GestaltOrg.createSubOrg(parentOrgId = parentOrgId, GestaltOrgCreate("someNewOrgName"))(securityClient.withCreds(creds)) map {
+      GestaltOrg.createSubOrg(parentOrgId = parentOrgId, GestaltOrgCreate("someNewOrgName"))(sec.securityClient.withCreds(creds)) map {
         // do what you were going to do
         newOrg => Created(Json.obj(
           "newAccountId" -> newOrg.id,
@@ -70,11 +62,11 @@ class ApplicationController @Inject()( mApi: MessagesApi,
       }
   }
 
-  def deleteOrgPassthrough(orgId: UUID) = GestaltFrameworkAuthAction(Some(orgId)).async(parse.json) {
+  def deleteOrgPassthrough(orgId: UUID) = sec.AuthAction(Some(orgId)).async(parse.json) {
     securedRequest =>
       val account = securedRequest.identity.account
       val creds = securedRequest.identity.creds
-      GestaltOrg.deleteOrg(orgId)(securityClient.withCreds(creds)) map {
+      GestaltOrg.deleteOrg(orgId)(sec.securityClient.withCreds(creds)) map {
         // do what you were going to do
         newOrg => Ok(Json.obj(
           "deletedOrgId" -> orgId,
@@ -83,7 +75,7 @@ class ApplicationController @Inject()( mApi: MessagesApi,
       }
   }
 
-  def createAccountPassthrough(parentOrgId: UUID) = GestaltFrameworkAuthAction(Some(parentOrgId)).async(parse.json) {
+  def createAccountPassthrough(parentOrgId: UUID) = sec.AuthAction(Some(parentOrgId)).async(parse.json) {
     securedRequest =>
       val account = securedRequest.identity.account
       val someExistingGroupId = UUID.randomUUID()
@@ -97,7 +89,7 @@ class ApplicationController @Inject()( mApi: MessagesApi,
         credential = GestaltPasswordCredential("bob's password"),
         groups = Some(Seq(someExistingGroupId)),
         rights = Some(Seq(GestaltGrantCreate("freedom")))
-      ))(securityClient.withCreds(creds)) map {
+      ))(sec.securityClient.withCreds(creds)) map {
         // do what you were going to do
         newOrg => Created(Json.obj(
           "newAccountId" -> newOrg.id,

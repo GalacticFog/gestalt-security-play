@@ -4,16 +4,16 @@ version := "2.5"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
-scalaVersion := "2.11.6"
+scalaVersion := "2.11.8"
 
 libraryDependencies ++= Seq(
   jdbc,
   cache,
   ws,
-  "com.galacticfog" %% "gestalt-security-play" % "4.0.0-SNAPSHOT" withSources,
+  "com.galacticfog" %% "gestalt-security-play" % "4.0.0" withSources,
   //
   specs2 % Test,
-  "com.galacticfog" %% "gestalt-security-play-testkit" % "4.0.0-SNAPSHOT" % Test withSources
+  "com.galacticfog" %% "gestalt-security-play-testkit" % "4.0.0" % Test withSources
 )
 
 resolvers ++= Seq(
