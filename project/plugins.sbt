@@ -8,4 +8,3 @@ addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.5.10")
 
 // sbt-ecplise plugin
 addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "3.0.0")
-

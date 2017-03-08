@@ -32,4 +32,3 @@ lazy val gestaltSecurityPlayTestkit = (project in file("gestalt-security-play-te
   .enablePlugins(PlayScala)
   .aggregate(gestaltSecurityPlay)
   .dependsOn(gestaltSecurityPlay)
-
