@@ -7,7 +7,6 @@ import com.galacticfog.gestalt.security.play.silhouette.GestaltAuthResponseWithC
 import com.galacticfog.gestalt.security.play.silhouette.fakes.{FakeGestaltFrameworkSecurityEnvironment, FakeGestaltSecurityModule}
 import com.galacticfog.gestalt.security.play.silhouette.modules.{GestaltFrameworkSecurityConfigModule, GestaltSecurityModule}
 import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
-import modules.ProdSecurityModule
 import org.junit.runner._
 import org.specs2.mock.Mockito
 import org.specs2.runner.JUnitRunner
@@ -62,7 +61,6 @@ class ControllerFakeSecuritySpec extends PlaySpecification with Mockito {
     new GuiceApplicationBuilder()
       .disable[GestaltFrameworkSecurityConfigModule]
       .disable[GestaltSecurityModule]
-      .disable[ProdSecurityModule]
       .bindings( // enable the fake security module using the fake environment created by fakeEnv
         FakeGestaltSecurityModule(fakeEnv)
       )
