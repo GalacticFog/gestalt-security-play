@@ -52,10 +52,10 @@ class ControllerFakeSecuritySpec extends PlaySpecification with Mockito {
 
   lazy val testAuthResponse = dummyAuthAccount()
   lazy val testCreds = testAuthResponse.creds
-  def fakeEnv = FakeGestaltFrameworkSecurityEnvironment[DummyAuthenticator](
+  def fakeEnv = FakeGestaltFrameworkSecurityEnvironment(
     identities = Seq( testCreds -> testAuthResponse ),
-    config = GestaltSecurityConfig(FRAMEWORK_SECURITY_MODE, HTTP, "localhost", 9455, "empty", "empty", None, None),
-    client = mock[GestaltSecurityClient]
+    securityConfig = GestaltSecurityConfig(FRAMEWORK_SECURITY_MODE, HTTP, "localhost", 9455, "empty", "empty", None, None),
+    securityClient = mock[GestaltSecurityClient]
   )
 
   def app: Application =
@@ -76,7 +76,7 @@ class ControllerFakeSecuritySpec extends PlaySpecification with Mockito {
     "say hello to authenticated users" in new WithFakeSecurity {
       val request = FakeRequest().withHeaders(AUTHORIZATION -> testCreds.headerValue)
 
-      val Some(result) = route(request)
+      val Some(result) = route(app,request)
 
       status(result) must equalTo(OK)
       contentAsString(result) must startWith("hello, " + testAuthResponse.account.username)
@@ -85,7 +85,7 @@ class ControllerFakeSecuritySpec extends PlaySpecification with Mockito {
     "say 401 to non-authenticated users" in new WithFakeSecurity {
       val request = FakeRequest() // no creds for you: .withHeaders(AUTHORIZATION -> testCreds.headerValue)
 
-      val Some(result) = route(request)
+      val Some(result) = route(app,request)
 
       status(result) must equalTo(UNAUTHORIZED)
     }

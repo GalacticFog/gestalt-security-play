@@ -6,8 +6,8 @@ import com.galacticfog.gestalt.security.api._
 import com.galacticfog.gestalt.security.play.silhouette.GestaltDelegatedAuthProvider._
 import play.api.Logger
 import play.api.http.HeaderNames
-import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc.Request
+
 import scala.concurrent.Future
 
 class GestaltDelegatedAuthProvider(appId: UUID, client: GestaltSecurityClient) extends GestaltBaseAuthProvider {

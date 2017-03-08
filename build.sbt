@@ -19,7 +19,7 @@ publishTo in ThisBuild <<= version { (v: String) =>
 }
 
 organization      in ThisBuild := "com.galacticfog"
-version           in ThisBuild := "3.0.4-SNAPSHOT"
+version           in ThisBuild := "4.0.1-SNAPSHOT"
 scalaVersion      in ThisBuild := "2.11.8"
 isSnapshot        in ThisBuild := true
 publishMavenStyle in ThisBuild := true
@@ -32,4 +32,3 @@ lazy val gestaltSecurityPlayTestkit = (project in file("gestalt-security-play-te
   .enablePlugins(PlayScala)
   .aggregate(gestaltSecurityPlay)
   .dependsOn(gestaltSecurityPlay)
-

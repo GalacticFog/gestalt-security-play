@@ -1,73 +1,30 @@
 package com.galacticfog.gestalt.security.play.silhouette
 
-import com.galacticfog.gestalt.security.api.{DELEGATED_SECURITY_MODE, FRAMEWORK_SECURITY_MODE, GestaltSecurityClient, GestaltSecurityConfig}
-import com.google.inject.Inject
-import com.mohiva.play.silhouette.api.{Authenticator, Environment, EventBus, RequestProvider}
-import com.mohiva.play.silhouette.api.services.{AuthenticatorService, IdentityService}
-import play.api.Logger
+import javax.inject.Inject
 
-import scala.concurrent.ExecutionContext
+import com.galacticfog.gestalt.security.api.{GestaltSecurityClient, GestaltSecurityConfig}
+import com.mohiva.play.silhouette.api._
+import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticator
 
-trait GestaltSecurityEnvironment[I <: GestaltAuthIdentity, A <: Authenticator] extends Environment[I, A] {
+trait GestaltSecurityEnvironment[GI <: GestaltAuthIdentity] extends Env {
   def client: GestaltSecurityClient
   def config: GestaltSecurityConfig
+  override type A = DummyAuthenticator
+  override type I = GI
 }
 
-class GestaltDelegatedSecurityEnvironment[A <: Authenticator]( securityConfig: GestaltSecurityConfig,
-                                                               securityClient: GestaltSecurityClient,
-                                                               bus: EventBus,
-                                                               identitySvc: IdentityService[AuthAccount],
-                                                               authSvc: AuthenticatorService[A] )
-                                                             ( implicit ec: ExecutionContext )
-  extends GestaltSecurityEnvironment[AuthAccount, A] {
-
-  val gstltAuthProvider = securityConfig match {
-    case GestaltSecurityConfig(_, _, _, _, _, _, None,_) =>
-      Logger.error(s"GestaltSecurityConfig passed to GestaltDelegatedSecurityEnvironment without appId: ${securityConfig}")
-      throw new RuntimeException("GestaltSecurityConfig passed to GestaltDelegatedSecurityEnvironment without appId.")
-    case GestaltSecurityConfig(FRAMEWORK_SECURITY_MODE, _, _, _, _, _, Some(appId), _) =>
-      Logger.warn("GestaltSecurityConfig configured for FRAMEWORK mode was passed to GestaltDelegatedSecurityEnvironment; this is not valid. Will use the configuration as is because it had an appId.")
-      new GestaltDelegatedAuthProvider(appId, client)
-    case GestaltSecurityConfig(DELEGATED_SECURITY_MODE, _, _, _, _, _, Some(appId), _) =>
-      new GestaltDelegatedAuthProvider(appId, client)
-  }
-
-  override def identityService: IdentityService[AuthAccount] = identitySvc
-
-  override def authenticatorService: AuthenticatorService[A] = authSvc
-
-  override def eventBus: EventBus = bus
-
-  override def requestProviders: Seq[RequestProvider] = Seq(gstltAuthProvider)
-
-  override implicit val executionContext: ExecutionContext = ec
+class GestaltDelegatedSecurityEnvironment @Inject() ( securityConfig: GestaltSecurityConfig,
+                                                      securityClient: GestaltSecurityClient )
+  extends GestaltSecurityEnvironment[AuthAccount] {
 
   override def config = securityConfig
-
   override def client = securityClient
 }
 
-class GestaltFrameworkSecurityEnvironment[A <: Authenticator]( securityConfig: GestaltSecurityConfig,
-                                                               securityClient: GestaltSecurityClient,
-                                                               bus: EventBus,
-                                                               identitySvc: IdentityService[AuthAccountWithCreds],
-                                                               authSvc: AuthenticatorService[A] )
-                                                             ( implicit ec: ExecutionContext )
-  extends GestaltSecurityEnvironment[AuthAccountWithCreds, A] {
-
-  val gstltAuthProvider = new GestaltFrameworkAuthProvider(client)
-
-  override def identityService: IdentityService[AuthAccountWithCreds] = identitySvc
-
-  override def authenticatorService: AuthenticatorService[A] = authSvc
-
-  override def eventBus: EventBus = bus
-
-  override def requestProviders: Seq[RequestProvider] = Seq(gstltAuthProvider)
-
-  override implicit val executionContext: ExecutionContext = ec
+class GestaltFrameworkSecurityEnvironment @Inject() ( securityConfig: GestaltSecurityConfig,
+                                                      securityClient: GestaltSecurityClient )
+  extends GestaltSecurityEnvironment[AuthAccountWithCreds] {
 
   override def config = securityConfig
-
   override def client = securityClient
 }

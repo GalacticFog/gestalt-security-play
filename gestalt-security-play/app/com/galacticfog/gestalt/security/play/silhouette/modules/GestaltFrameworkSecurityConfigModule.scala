@@ -1,13 +1,18 @@
 package com.galacticfog.gestalt.security.play.silhouette.modules
 
 import java.util.UUID
-import com.galacticfog.gestalt.security.api._
-import com.google.inject.{AbstractModule, Provides}
-import play.api.{Application, Logger}
 
-class GestaltFrameworkSecurityConfigModule extends AbstractModule {
+import com.galacticfog.gestalt.security.api._
+import com.galacticfog.gestalt.security.play.silhouette._
+import com.google.inject.{AbstractModule, Provides}
+import com.mohiva.play.silhouette.api.{Silhouette, SilhouetteProvider}
+import net.codingwell.scalaguice.ScalaModule
+import play.api.Logger
+
+class GestaltFrameworkSecurityConfigModule extends AbstractModule with ScalaModule {
 
   override def configure() = {
+    bind[Silhouette[GestaltFrameworkSecurityEnvironment]].to[SilhouetteProvider[GestaltFrameworkSecurityEnvironment]]
   }
 
   lazy val config = try {

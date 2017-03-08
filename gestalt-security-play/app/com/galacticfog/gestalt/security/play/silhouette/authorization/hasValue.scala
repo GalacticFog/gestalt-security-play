@@ -11,7 +11,7 @@ case class hasValue[A <: Authenticator](grantName: String, grantValue: String)
   extends Authorization[GestaltAuthIdentity,A] {
 
   override def isAuthorized[B]( identity: GestaltAuthIdentity, authenticator: A )
-                              ( implicit request: Request[B], messages: Messages ): Future[Boolean] = {
+                              ( implicit request: Request[B] ): Future[Boolean] = {
     Future.successful(
       identity.rights.exists( g =>
         g.grantName == grantName && g.grantValue.isDefined && g.grantValue.get.equals(grantValue)

@@ -12,8 +12,8 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 case class matchesValue(grantName: String, grantValue: String)(matches: (String,String) => Boolean) extends Authorization[AuthAccount,DummyAuthenticator] {
-  override def isAuthorized[B](identity: AuthAccount, authenticator: DummyAuthenticator)(
-      implicit request: Request[B], messages: Messages): Future[Boolean] = Future {
+  override def isAuthorized[B](identity: AuthAccount, authenticator: DummyAuthenticator)
+                              ( implicit request: Request[B] ): Future[Boolean] = Future {
     identity.rights.exists( g =>
       g.grantName.equals(grantName) && g.grantValue.isDefined && matches(g.grantValue.get, grantValue)
     )

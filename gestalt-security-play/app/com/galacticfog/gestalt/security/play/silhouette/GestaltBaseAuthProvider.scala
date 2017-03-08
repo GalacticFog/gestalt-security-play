@@ -1,14 +1,10 @@
 package com.galacticfog.gestalt.security.play.silhouette
 
-import com.galacticfog.gestalt.security.api.{GestaltBasicCredentials, GestaltAPICredentials, GestaltAuthResponse, GestaltSecurityClient}
+import com.galacticfog.gestalt.security.api.{GestaltAPICredentials, GestaltAuthResponse}
 import com.mohiva.play.silhouette.api.{LoginInfo, RequestProvider}
-import com.mohiva.play.silhouette.api.util.Base64
-
-//import com.mohiva.play.silhouette.api.crypto.Base64
 
 import play.api.Logger
-import play.api.http.HeaderNames
-import play.api.mvc.{Request, RequestHeader}
+import play.api.mvc.Request
 import play.api.libs.concurrent.Execution.Implicits._
 import scala.concurrent.Future
 
