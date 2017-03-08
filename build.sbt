@@ -19,7 +19,7 @@ publishTo in ThisBuild <<= version { (v: String) =>
 }
 
 organization      in ThisBuild := "com.galacticfog"
-version           in ThisBuild := "4.0.0"
+version           in ThisBuild := "4.0.1-SNAPSHOT"
 scalaVersion      in ThisBuild := "2.11.8"
 isSnapshot        in ThisBuild := true
 publishMavenStyle in ThisBuild := true
