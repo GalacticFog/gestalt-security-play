@@ -8,6 +8,7 @@ import com.galacticfog.gestalt.security.api.json.JsonImports.exceptionFormat
 import com.google.inject.Inject
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.api.actions.{SecuredRequest, UserAwareRequest}
+import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc._
 import play.api.mvc.Results._
@@ -23,6 +24,8 @@ class GestaltFrameworkSecurity @Inject() ( environment: GestaltFrameworkSecurity
                                            sil: Silhouette[GestaltFrameworkSecurityEnvironment] )
  {
 
+  val secLogger = Logger("gestalt-security-play")
+
   implicit val securityClient: GestaltSecurityClient = environment.client
 
   def securityRealmOverride(orgFQON: String): Option[String] = environment.config.realm.map(
@@ -35,15 +38,20 @@ class GestaltFrameworkSecurity @Inject() ( environment: GestaltFrameworkSecurity
     def invokeBlock[B](request: Request[B], block: SecuredRequest[GestaltFrameworkSecurityEnvironment,B] => Future[Result]) = {
       val ocr = OrgContextRequest(maybeGenFQON flatMap {_(request)}, request)
       sil.SecuredRequestHandler(ocr) { securedRequest =>
+      secLogger.trace(s"request context: ${ocr}")
         Future.successful(HandlerResult(Ok, Some(securedRequest)))
       }.flatMap {
-        case HandlerResult(r, Some(sr)) => block(sr)
-        case HandlerResult(r, None) => Future{
+        case HandlerResult(r, Some(sr)) =>
+          secLogger.trace("dispatching SecuredRequest to controller application block")
+          block(sr)
+        case HandlerResult(r, None) => Future {
           lazy val org = ocr.orgFQON getOrElse "root"
           lazy val defRealm = s"${securityClient.protocol}://${securityClient.hostname}:${securityClient.port}/${org}/oauth/issue"
           val realm: String = securityRealmOverride(org) getOrElse defRealm
           val challenge: String = "Bearer realm=\"" + realm + "\" error=\"invalid_token\""
-          Unauthorized(Json.toJson(UnauthorizedAPIException("","Authentication required",""))).withHeaders(WWW_AUTHENTICATE -> challenge)
+          val resp = Unauthorized(Json.toJson(UnauthorizedAPIException("","Authentication required",""))).withHeaders(WWW_AUTHENTICATE -> challenge)
+          secLogger.trace(s"authentication failed, returning ${resp}")
+          resp
         }
       }
     }
@@ -54,16 +62,21 @@ class GestaltFrameworkSecurity @Inject() ( environment: GestaltFrameworkSecurity
 
     def invokeBlock[B](request: Request[B], block: SecuredRequest[GestaltFrameworkSecurityEnvironment,B] => Future[Result]) = {
       val ocr = OrgContextRequestUUID(maybeGenOrgId flatMap {_(request)}, request)
+      secLogger.trace(s"request context: ${ocr}")
       sil.SecuredRequestHandler(ocr) { securedRequest =>
         Future.successful(HandlerResult(Ok, Some(securedRequest)))
       }.flatMap {
-        case HandlerResult(r, Some(sr)) => block(sr)
+        case HandlerResult(r, Some(sr)) =>
+          secLogger.trace("dispatching SecuredRequest to controller application block")
+          block(sr)
         case HandlerResult(r, None) => Future{
           lazy val org = ocr.orgId map {orgId => s"orgs/${orgId}"} getOrElse "root"
           lazy val defRealm = s"${securityClient.protocol}://${securityClient.hostname}:${securityClient.port}/${org}/oauth/issue"
           val realm: String = securityRealmOverride(org) getOrElse defRealm
           val challenge: String = "Bearer realm=\"" + realm + "\" error=\"invalid_token\""
-          Unauthorized(Json.toJson(UnauthorizedAPIException("","Authentication required",""))).withHeaders(WWW_AUTHENTICATE -> challenge)
+          val resp = Unauthorized(Json.toJson(UnauthorizedAPIException("","Authentication required",""))).withHeaders(WWW_AUTHENTICATE -> challenge)
+          secLogger.trace(s"authentication failed, returning ${resp}")
+          resp
         }
       }
     }
