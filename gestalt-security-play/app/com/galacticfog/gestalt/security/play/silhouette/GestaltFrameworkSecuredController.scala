@@ -36,12 +36,12 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]( mAPI: Mess
   class GestaltFrameworkAuthActionBuilder(maybeGenFQON: Option[RequestHeader => Option[String]] = None) extends ActionBuilder[SecuredRequest] {
     def invokeBlock[B](request: Request[B], block: SecuredRequest[B] => Future[Result]) = {
       val ocr = OrgContextRequest(maybeGenFQON flatMap {_(request)}, request)
-      secLogger.trace(s"request context: ${ocr}")
+      secLogger.trace(s"req-${ocr.id}: request context: ${ocr}")
       SecuredRequestHandler(ocr) { securedRequest =>
         Future.successful(HandlerResult(Ok, Some(securedRequest)))
       }.flatMap {
         case HandlerResult(r, Some(sr)) =>
-          secLogger.trace("dispatching SecuredRequest to controller application block")
+          secLogger.trace(s"req-${request.id}: dispatching SecuredRequest to controller application block")
           block(sr)
         case HandlerResult(r, None) => Future {
           lazy val org = ocr.orgFQON getOrElse "root"
@@ -49,7 +49,7 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]( mAPI: Mess
           val realm: String = securityRealmOverride(org) getOrElse defRealm
           val challenge: String = "Bearer realm=\"" + realm + "\" error=\"invalid_token\""
           val resp = Unauthorized(Json.toJson(UnauthorizedAPIException("","Authentication required",""))).withHeaders(WWW_AUTHENTICATE -> challenge)
-          secLogger.trace(s"authentication failed, returning ${resp}")
+          secLogger.trace(s"req-${request.id}: authentication failed, returning ${resp}")
           resp
         }
       }
@@ -59,12 +59,12 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]( mAPI: Mess
   class GestaltFrameworkAuthActionBuilderUUID(maybeGenOrgId: Option[RequestHeader => Option[UUID]] = None) extends ActionBuilder[SecuredRequest] {
     def invokeBlock[B](request: Request[B], block: SecuredRequest[B] => Future[Result]) = {
       val ocr = OrgContextRequestUUID(maybeGenOrgId flatMap {_(request)}, request)
-      secLogger.trace(s"request context: ${ocr}")
+      secLogger.trace(s"req-${request.id}: request context: ${ocr}")
       SecuredRequestHandler(ocr) { securedRequest =>
         Future.successful(HandlerResult(Ok, Some(securedRequest)))
       }.flatMap {
         case HandlerResult(r, Some(sr)) =>
-          secLogger.trace("dispatching SecuredRequest to controller application block")
+          secLogger.trace("req-${request.id}: dispatching SecuredRequest to controller application block")
           block(sr)
         case HandlerResult(r, None) => Future{
           lazy val org = ocr.orgId map {orgId => s"orgs/${orgId}"} getOrElse "root"
@@ -72,7 +72,7 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]( mAPI: Mess
           val realm: String = securityRealmOverride(org) getOrElse defRealm
           val challenge: String = "Bearer realm=\"" + realm + "\" error=\"invalid_token\""
           val resp = Unauthorized(Json.toJson(UnauthorizedAPIException("","Authentication required",""))).withHeaders(WWW_AUTHENTICATE -> challenge)
-          secLogger.trace(s"authentication failed, returning ${resp}")
+          secLogger.trace(s"req-${request.id}: authentication failed, returning ${resp}")
           resp
         }
       }

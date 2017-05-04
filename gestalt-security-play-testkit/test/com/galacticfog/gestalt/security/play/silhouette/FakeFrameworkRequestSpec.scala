@@ -65,7 +65,8 @@ class FakeFrameworkRequestSpec extends PlaySpecification with Mockito {
       groups = groups,
       rights = Seq(),
       orgId = orgId,
-      creds = dummyCreds()
+      creds = dummyCreds(),
+      extraData = None
     )
   }
 
