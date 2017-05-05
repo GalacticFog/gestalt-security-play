@@ -13,7 +13,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 
 import scala.util.{Failure, Success, Try}
 
-class GestaltAuthResponseWithCreds(override val account: GestaltAccount, override val groups: Seq[ResourceLink], override val rights: Seq[GestaltRightGrant], override val orgId: UUID, val creds: GestaltAPICredentials) extends GestaltAuthResponse(account, groups, rights, orgId)
+class GestaltAuthResponseWithCreds(override val account: GestaltAccount, override val groups: Seq[ResourceLink], override val rights: Seq[GestaltRightGrant], override val orgId: UUID, val creds: GestaltAPICredentials, override val extraData: Option[Map[String,String]]) extends GestaltAuthResponse(account, groups, rights, orgId, extraData)
 
 class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends GestaltBaseAuthProvider {
 
@@ -53,7 +53,8 @@ class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends Gestal
               rights = valid.gestalt_rights,
               groups = valid.gestalt_groups,
               orgId = valid.gestalt_org_id,
-              creds = creds
+              creds = creds,
+              extraData = valid.extra_data
             ))
           }
         }
@@ -76,7 +77,8 @@ class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends Gestal
             rights = ar.rights,
             groups = ar.groups,
             orgId = ar.orgId,
-            creds = creds
+            creds = creds,
+            extraData = ar.extraData
           )
         } }
       case None =>

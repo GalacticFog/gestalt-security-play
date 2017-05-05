@@ -167,7 +167,8 @@ class GestaltSecurityPlaySpec extends Specification with Mockito with FutureAwai
         )),
         groups = Seq(),
         rights = Seq(),
-        orgId = UUID.randomUUID()
+        orgId = UUID.randomUUID(),
+        extraData = None
       )
       val ws = MockWS {
         case (POST,url) => Action { implicit request => Ok(Json.toJson(authResponse))}
@@ -198,7 +199,8 @@ class GestaltSecurityPlaySpec extends Specification with Mockito with FutureAwai
         )),
         groups = Seq(),
         rights = Seq(),
-        orgId = UUID.randomUUID()
+        orgId = UUID.randomUUID(),
+        extraData = None
       )
       val introspectionResponse = ValidTokenResponse(
         username = "username",
@@ -211,7 +213,8 @@ class GestaltSecurityPlaySpec extends Specification with Mockito with FutureAwai
         gestalt_token_href = s"/tokens/${token.id.toString}",
         gestalt_rights = authResponse.rights,
         gestalt_groups = authResponse.groups,
-        gestalt_org_id = authResponse.orgId
+        gestalt_org_id = authResponse.orgId,
+        extra_data = None
       )
       val ws = MockWS {
         case (POST,url) => Action { implicit request => Ok(Json.toJson(introspectionResponse))}
@@ -240,7 +243,8 @@ class GestaltSecurityPlaySpec extends Specification with Mockito with FutureAwai
         )),
         groups = Seq(),
         rights = Seq(),
-        orgId = UUID.randomUUID()
+        orgId = UUID.randomUUID(),
+        extraData = None
       )
       val introspectionResponse = ValidTokenResponse(
         username = "username",
@@ -253,7 +257,8 @@ class GestaltSecurityPlaySpec extends Specification with Mockito with FutureAwai
         gestalt_token_href = s"/tokens/${token.id.toString}",
         gestalt_rights = authResponse.rights,
         gestalt_groups = authResponse.groups,
-        gestalt_org_id = authResponse.orgId
+        gestalt_org_id = authResponse.orgId,
+        extra_data = None
       )
       val ws = MockWS {
         case (POST,url) => Action { implicit request => Ok(Json.toJson(introspectionResponse)) }
