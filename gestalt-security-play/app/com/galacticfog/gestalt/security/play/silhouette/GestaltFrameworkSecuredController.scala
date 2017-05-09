@@ -64,7 +64,7 @@ abstract class GestaltFrameworkSecuredController[A <: Authenticator]( mAPI: Mess
         Future.successful(HandlerResult(Ok, Some(securedRequest)))
       }.flatMap {
         case HandlerResult(r, Some(sr)) =>
-          secLogger.trace("req-${request.id}: dispatching SecuredRequest to controller application block")
+          secLogger.trace(s"req-${request.id}: dispatching SecuredRequest to controller application block")
           block(sr)
         case HandlerResult(r, None) => Future{
           lazy val org = ocr.orgId map {orgId => s"orgs/${orgId}"} getOrElse "root"
