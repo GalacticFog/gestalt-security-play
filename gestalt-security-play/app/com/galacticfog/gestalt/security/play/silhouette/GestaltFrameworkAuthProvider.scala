@@ -24,26 +24,31 @@ class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends Gestal
   override def id: String = GestaltFrameworkAuthProvider.ID
 
   override def gestaltAuthImpl[B](request: Request[B]): Future[Option[GestaltAuthResponse]] = {
+    val extraData = Map(
+      "gestalt-security-play-request-id" -> request.id.toString,
+      "gestalt-security-play-request-uri" -> request.uri,
+      "gestalt-security-play-request-time" -> System.currentTimeMillis().toString
+    )
     request.headers.get(HeaderNames.AUTHORIZATION) flatMap GestaltAPICredentials.getCredentials match {
       case Some(creds: GestaltBearerCredentials) =>
         val fIntroResp = Try{UUID.fromString(creds.token)} match {
           case Failure(err) =>
-            secLogger.warn("error parsing Bearer token as UUID, will not attempt to authenticate: " + err.getMessage)
+            secLogger.warn(s"req-${request.id}: error parsing Bearer token as UUID, will not attempt to authenticate: " + err.getMessage)
             Future.successful(INVALID_TOKEN)
           case Success(tokenId) =>
-            secLogger.trace("found Bearer credentials; will validate against gestalt-security")
+            secLogger.trace(s"req-${request.id}: found Bearer credentials; will validate against gestalt-security")
             val token = OpaqueToken(tokenId, ACCESS_TOKEN)
              request match {
-              case OrgContextRequestUUID(Some(orgId),_) => GestaltToken.validateToken(orgId = orgId, token = token)(client)
-              case OrgContextRequest(Some(fqon),_) => GestaltToken.validateToken(orgFQON = fqon, token = token)(client)
-              case _ => GestaltToken.validateToken(token = token)(client)
+              case OrgContextRequestUUID(Some(orgId),_) => GestaltToken.validateToken(orgId = orgId, token = token, extraData = extraData)(client)
+              case OrgContextRequest(Some(fqon),_) => GestaltToken.validateToken(orgFQON = fqon, token = token, extraData = extraData)(client)
+              case _ => GestaltToken.validateToken(token = token, extraData = extraData)(client)
             }
         }
         fIntroResp onComplete {
           case Success(resp) =>
-            secLogger.trace(s"received auth response from gestalt-security: token.active == ${resp.active}")
+            secLogger.trace(s"req-${request.id}: received auth response from gestalt-security: token.active == ${resp.active}")
           case Failure(ex) =>
-            secLogger.error("error while validating Bearer token against gestalt-security", ex)
+            secLogger.error(s"req-${request.id}: error while validating Bearer token against gestalt-security", ex)
         }
         fIntroResp map {
           _ match {
@@ -59,17 +64,17 @@ class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends Gestal
           }
         }
       case Some(creds: GestaltBasicCredentials) =>
-        secLogger.trace("found Basic credentials; will validate against gestalt-security")
+        secLogger.trace(s"req-${request.id}: found Basic credentials; will validate against gestalt-security")
         val authResponse = request match {
-          case OrgContextRequestUUID(Some(orgId),_) => GestaltOrg.authorizeFrameworkUser(orgId,creds)(client)
-          case OrgContextRequest(Some(fqon),_) => GestaltOrg.authorizeFrameworkUser(fqon,creds)(client)
-          case _ => GestaltOrg.authorizeFrameworkUser(creds)(client)
+          case OrgContextRequestUUID(Some(orgId),_) => GestaltOrg.authorizeFrameworkUser(orgId,creds,extraData)(client)
+          case OrgContextRequest(Some(fqon),_) => GestaltOrg.authorizeFrameworkUser(fqon,creds,extraData)(client)
+          case _ => GestaltOrg.authorizeFrameworkUser(creds,extraData)(client)
         }
         authResponse onComplete {
           case Success(resp) =>
-            secLogger.trace(s"received auth response from gestalt-security: credentials.valid == ${resp.isDefined}")
+            secLogger.trace(s"req-${request.id}: received auth response from gestalt-security: credentials.valid == ${resp.isDefined}")
           case Failure(ex) =>
-            secLogger.error("error while validating API credentials against gestalt-security", ex)
+            secLogger.error(s"req-${request.id}: error while validating API credentials against gestalt-security", ex)
         }
         authResponse map {  _.map { ar =>
           new GestaltAuthResponseWithCreds(
@@ -82,7 +87,7 @@ class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends Gestal
           )
         } }
       case None =>
-        secLogger.trace("did not find credentials in request Authorization header")
+        secLogger.trace(s"req-${request.id}: did not find credentials in request Authorization header")
         Future.successful(None)
     }
   }
