@@ -6,16 +6,15 @@ import com.galacticfog.gestalt.security.api.GestaltToken.ACCESS_TOKEN
 import com.galacticfog.gestalt.security.api._
 import play.api.Logger
 import play.api.http.HeaderNames
+import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc.Request
 
 import scala.concurrent.Future
-import play.api.libs.concurrent.Execution.Implicits._
-
 import scala.util.{Failure, Success, Try}
 
 class GestaltAuthResponseWithCreds(override val account: GestaltAccount, override val groups: Seq[ResourceLink], override val rights: Seq[GestaltRightGrant], override val orgId: UUID, val creds: GestaltAPICredentials, override val extraData: Option[Map[String,String]]) extends GestaltAuthResponse(account, groups, rights, orgId, extraData)
 
-class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends GestaltBaseAuthProvider {
+class GestaltFrameworkAuthProvider(secEnv: GestaltSecurityEnvironment[_]) extends GestaltBaseAuthProvider {
 
   val secLogger = Logger("gestalt-security-play")
 
@@ -24,6 +23,7 @@ class GestaltFrameworkAuthProvider(client: GestaltSecurityClient) extends Gestal
   override def id: String = GestaltFrameworkAuthProvider.ID
 
   override def gestaltAuthImpl[B](request: Request[B]): Future[Option[GestaltAuthResponse]] = {
+    val client = secEnv.client
     val extraData = Map(
       "gestalt-security-play-request-id" -> request.id.toString,
       "gestalt-security-play-request-uri" -> request.uri,

@@ -95,11 +95,11 @@ Running example app in the background
 "
 ./target/universal/stage/bin/gestalt-framework-auth &
 
-sleep 10
+sleep 30
 
 echo "
 Auth attempt with no credentials:"
-bad=$(http --ignore-stdin localhost:9000/ Authorization: || true)
+bad=$(http --ignore-stdin http://localhost:9000/ Authorization: || true)
 if [[ `echo $bad | jq -r '.code'` -ne 401 ]]; then 
   echo "***** DID NOT GET EXPECTED 401"
   exit 1
@@ -109,7 +109,7 @@ fi
 
 echo "
 Auth attempt with bad credentials:"
-bad=$(http --ignore-stdin -a BAD:CREDS localhost:9000/ || true)
+bad=$(http --ignore-stdin -a BAD:CREDS http://localhost:9000/ || true)
 if [[ `echo $bad | jq -r '.code'` -ne 401 ]]; then 
   echo "***** DID NOT GET EXPECTED 401"
   exit 1
@@ -119,7 +119,7 @@ fi
 
 echo "
 Auth attempt with good credentials:"
-good=$(http --ignore-stdin --check-status -a "$GESTALT_SECURITY_KEY":"$GESTALT_SECURITY_SECRET" localhost:9000/)
+good=$(http --ignore-stdin --check-status -a "$GESTALT_SECURITY_KEY":"$GESTALT_SECURITY_SECRET" http://localhost:9000/)
 echo "Got response:
 $good
 "

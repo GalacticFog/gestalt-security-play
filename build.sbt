@@ -18,17 +18,24 @@ publishTo in ThisBuild <<= version { (v: String) =>
     Some("publish-gf-releases"  at ao + "libs-releases-local")
 }
 
+git.baseVersion := "4.1.0"
+git.useGitDescribe := true
+
 organization      in ThisBuild := "com.galacticfog"
-version           in ThisBuild := "4.0.1-SNAPSHOT"
 scalaVersion      in ThisBuild := "2.11.8"
 isSnapshot        in ThisBuild := true
 publishMavenStyle in ThisBuild := true
-credentials       in ThisBuild += Credentials(Path.userHome / ".ivy2" / ".credentials")
+credentials       in ThisBuild += Credentials(
+  "Artifactory Realm",
+  "galacticfog.artifactoryonline.com",
+  sys.env("GF_ARTIFACTORY_USER"),
+  sys.env("GF_ARTIFACTORY_PWD")
+)
 
 lazy val gestaltSecurityPlay = (project in file("gestalt-security-play"))
-  .enablePlugins(PlayScala)
+  .enablePlugins(PlayScala,GitVersioning,GitBranchPrompt)
 
 lazy val gestaltSecurityPlayTestkit = (project in file("gestalt-security-play-testkit"))
-  .enablePlugins(PlayScala)
+  .enablePlugins(PlayScala,GitVersioning,GitBranchPrompt)
   .aggregate(gestaltSecurityPlay)
   .dependsOn(gestaltSecurityPlay)

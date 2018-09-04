@@ -2,7 +2,7 @@ package com.galacticfog.gestalt.security.play.silhouette.fakes
 
 import com.galacticfog.gestalt.security.api.{GestaltSecurityClient, GestaltSecurityConfig}
 import com.galacticfog.gestalt.security.play.silhouette._
-import com.google.inject.{AbstractModule, Provides, TypeLiteral}
+import com.google.inject.{AbstractModule, Provider, Provides, TypeLiteral}
 import com.mohiva.play.silhouette.api.{Environment, EventBus, Silhouette, SilhouetteProvider}
 import com.mohiva.play.silhouette.api.services.IdentityService
 import com.mohiva.play.silhouette.impl.authenticators.DummyAuthenticatorService
@@ -14,16 +14,12 @@ class FakeGestaltDelegatedSecurityModule( fakeEnv: FakeGestaltDelegatedSecurityE
   override def configure() = {
     bind[Silhouette[GestaltDelegatedSecurityEnvironment]].to[SilhouetteProvider[GestaltDelegatedSecurityEnvironment]]
     bind[GestaltDelegatedSecurityEnvironment].toInstance(fakeEnv)
-    bind[GestaltSecurityConfig].toInstance(fakeEnv.config)
-    bind[GestaltSecurityClient].toInstance(fakeEnv.client)
     bind(classOf[EventBus]).toInstance(EventBus())
     bind(new TypeLiteral[IdentityService[AuthAccount]]{}).toInstance(new AccountServiceImpl())
   }
 
   @Provides
   def provideDelegatedSecurityEnvironment( identityService: IdentityService[AuthAccount],
-                                           securityConfig: GestaltSecurityConfig,
-                                           securityClient: GestaltSecurityClient,
                                            eventBus: EventBus )
                                          ( implicit ec: ExecutionContext ): Environment[GestaltDelegatedSecurityEnvironment] = {
     Environment[GestaltDelegatedSecurityEnvironment](
@@ -39,16 +35,12 @@ class FakeGestaltFrameworkSecurityModule( fakeEnv: FakeGestaltFrameworkSecurityE
   override def configure() = {
     bind[Silhouette[GestaltFrameworkSecurityEnvironment]].to[SilhouetteProvider[GestaltFrameworkSecurityEnvironment]]
     bind[GestaltFrameworkSecurityEnvironment].toInstance(fakeEnv)
-    bind[GestaltSecurityConfig].toInstance(fakeEnv.config)
-    bind[GestaltSecurityClient].toInstance(fakeEnv.client)
     bind[EventBus].toInstance(EventBus())
     bind(new TypeLiteral[IdentityService[AuthAccountWithCreds]]{}).toInstance(new AccountServiceImplWithCreds())
   }
 
   @Provides
   def provideFrameworkSecurityEnvironment( identityService: IdentityService[AuthAccountWithCreds],
-                                           securityConfig: GestaltSecurityConfig,
-                                           securityClient: GestaltSecurityClient,
                                            eventBus: EventBus )
                                          ( implicit ec: ExecutionContext ): Environment[GestaltFrameworkSecurityEnvironment] = {
     Environment[GestaltFrameworkSecurityEnvironment](

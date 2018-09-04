@@ -10,10 +10,10 @@ libraryDependencies ++= Seq(
   jdbc,
   cache,
   ws,
-  "com.galacticfog" %% "gestalt-security-play" % "4.0.1-SNAPSHOT" withSources,
+  "com.galacticfog" %% "gestalt-security-play" % "4.1.0" withSources,
   //
   specs2 % Test,
-  "com.galacticfog" %% "gestalt-security-play-testkit" % "4.0.1-SNAPSHOT" % Test withSources
+  "com.galacticfog" %% "gestalt-security-play-testkit" % "4.1.0" % Test withSources
 )
 
 resolvers ++= Seq(

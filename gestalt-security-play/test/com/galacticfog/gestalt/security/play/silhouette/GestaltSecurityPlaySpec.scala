@@ -2,8 +2,8 @@ package com.galacticfog.gestalt.security.play.silhouette
 
 import java.util.UUID
 
-import com.galacticfog.gestalt.security.api._
 import com.galacticfog.gestalt.security.api.GestaltToken.ACCESS_TOKEN
+import com.galacticfog.gestalt.security.api._
 import com.galacticfog.gestalt.security.api.json.JsonImports._
 import com.galacticfog.gestalt.security.play.silhouette.modules.GestaltSecurityModule
 import com.google.inject.{AbstractModule, Inject, Provides}
@@ -16,17 +16,14 @@ import org.specs2.mock.Mockito
 import org.specs2.mutable._
 import org.specs2.runner._
 import play.api.Application
-import play.api.i18n.MessagesApi
-import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.test._
 import play.api.http.HeaderNames.WWW_AUTHENTICATE
-import play.api.mvc._
-import play.api.mvc.Action
-import play.api.mvc.Results._
-import play.api.test.Helpers._
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
-
-import scala.concurrent.ExecutionContext
+import play.api.libs.ws.WSClient
+import play.api.mvc.Results._
+import play.api.mvc.{Action, _}
+import play.api.test.Helpers._
+import play.api.test._
 
 class SecurityConfigOverrideModule(config: GestaltSecurityConfig) extends AbstractModule with ScalaModule {
   override def configure(): Unit = {
@@ -34,7 +31,24 @@ class SecurityConfigOverrideModule(config: GestaltSecurityConfig) extends Abstra
   }
 
   @Provides
-  def providesSecurityConfig(): GestaltSecurityConfig = config
+  def getFrameworkEnv(wsclient: WSClient): GestaltFrameworkSecurityEnvironment = new OverrideGestaltFrameworkSecurityEnvironment(wsclient, config)
+
+  @Provides
+  def getDelegatedEnv = new GestaltDelegatedSecurityEnvironment {
+    override def client: GestaltSecurityClient = ???
+    override def config: GestaltSecurityConfig = ???
+  }
+}
+
+class OverrideGestaltFrameworkSecurityEnvironment(wsclient: WSClient, overrideConfig: GestaltSecurityConfig) extends GestaltFrameworkSecurityEnvironment {
+  override def config = overrideConfig
+  override def client = new GestaltSecurityClient(
+    client = wsclient,
+    protocol = overrideConfig.protocol,
+    hostname = overrideConfig.hostname,
+    port = overrideConfig.port,
+    creds = GestaltBasicCredentials(overrideConfig.apiKey, overrideConfig.apiSecret)
+  )
 }
 
 class TestSecuredController @Inject()( gestaltSecurity: GestaltFrameworkSecurity ) {
@@ -64,7 +78,10 @@ class TestSecuredController @Inject()( gestaltSecurity: GestaltFrameworkSecurity
 @RunWith(classOf[JUnitRunner])
 class GestaltSecurityPlaySpec extends Specification with Mockito with FutureAwaits with DefaultAwaitTimeout {
 
-  import play.api.libs.concurrent.Execution.Implicits.defaultContext
+  implicit def envFromClient(_client: GestaltSecurityClient) = new GestaltSecurityEnvironment[AuthAccountWithCreds] {
+    override def client: GestaltSecurityClient = _client
+    override def config: GestaltSecurityConfig = ???
+  }
 
   val testConfigOverride = GestaltSecurityConfig(
     mode = FRAMEWORK_SECURITY_MODE,
@@ -80,8 +97,8 @@ class GestaltSecurityPlaySpec extends Specification with Mockito with FutureAwai
   def defaultTestApp(config: Option[GestaltSecurityConfig] = None): Application =
     new GuiceApplicationBuilder()
       .bindings(
-        new GestaltSecurityModule,
-        new SecurityConfigOverrideModule(config getOrElse testConfigOverride)
+        new SecurityConfigOverrideModule(config getOrElse testConfigOverride),
+        new GestaltSecurityModule
       )
       .build
 

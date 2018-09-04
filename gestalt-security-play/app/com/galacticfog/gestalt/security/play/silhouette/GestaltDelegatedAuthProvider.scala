@@ -10,10 +10,11 @@ import play.api.mvc.Request
 
 import scala.concurrent.Future
 
-class GestaltDelegatedAuthProvider(appId: UUID, client: GestaltSecurityClient) extends GestaltBaseAuthProvider {
+class GestaltDelegatedAuthProvider(appId: UUID, secEnv: GestaltSecurityEnvironment[_]) extends GestaltBaseAuthProvider {
   override def id: String = ID
 
   override def gestaltAuthImpl[B](request: Request[B]): Future[Option[GestaltAuthResponse]] = {
+    val client = secEnv.client
     request.headers.get(HeaderNames.AUTHORIZATION) flatMap GestaltAPICredentials.getCredentials match {
       case Some(creds: GestaltBasicCredentials) =>
         GestaltApp.authorizeUser(appId, GestaltBasicCredsToken(creds.username, creds.password))(client)

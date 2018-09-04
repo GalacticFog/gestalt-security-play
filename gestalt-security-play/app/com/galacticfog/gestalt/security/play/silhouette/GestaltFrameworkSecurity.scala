@@ -9,11 +9,11 @@ import com.google.inject.Inject
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.api.actions.{SecuredRequest, UserAwareRequest}
 import play.api.Logger
-import play.api.libs.json.Json
-import play.api.mvc._
-import play.api.mvc.Results._
 import play.api.http.HeaderNames._
 import play.api.libs.concurrent.Execution.Implicits._
+import play.api.libs.json.Json
+import play.api.mvc.Results._
+import play.api.mvc._
 
 import scala.concurrent.Future
 
